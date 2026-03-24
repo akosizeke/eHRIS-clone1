@@ -1,3 +1,8 @@
+# Ignore system files
+.DS_Store
+*Icons?
+Icon*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
@@ -193,6 +198,8 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+# Cython debug symbols
+cython_debug/
 
 # Cursor
 #  Cursor is an AI-powered code editor. `.cursorignore` specifies files/directories to
@@ -205,3 +212,9 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Ignore IDE specific files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
