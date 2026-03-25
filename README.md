@@ -21,3 +21,7 @@ DB_PASSWORD=hrdevelopment
 DB_HOST=192.168.88.69
 DB_PORT=5432
 DB_SCHEMA=hrdata
+
+
+
+Create your virtual environment and pip install requirements.txt
