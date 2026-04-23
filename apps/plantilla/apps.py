@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class OrganizationConfig(AppConfig):
+class PlantillaConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'Organization'
+    name = 'apps.plantilla'  # ← dating 'plantilla' lang
