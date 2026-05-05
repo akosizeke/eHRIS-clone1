@@ -1,0 +1,58 @@
+{% extends "ehris/base.html" %}
+
+{% block title %}{{ office.name }} | eHRIS{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>{{ office.name }}</h1>
+        <div class="muted">{{ office.organization }}</div>
+    </div>
+    <a class="button secondary" href="{% url 'organization:office_list' %}">Back to offices</a>
+</div>
+
+<section class="panel">
+    <dl class="details">
+        <dt>Office Code</dt>
+        <dd>{{ office.office_code|default:"-" }}</dd>
+        <dt>Type</dt>
+        <dd>{{ office.get_office_type_display }}</dd>
+        <dt>Level</dt>
+        <dd>{{ office.level_no }}</dd>
+        <dt>Parent Office</dt>
+        <dd>{{ office.parent_office|default:"-" }}</dd>
+        <dt>Office Head</dt>
+        <dd>{{ office.office_head|default:"-" }}</dd>
+        <dt>Status</dt>
+        <dd>{% if office.is_active %}Active{% else %}Inactive{% endif %}</dd>
+    </dl>
+</section>
+
+<section class="panel">
+    <div class="panel-header">
+        <h2>Plantilla Items</h2>
+    </div>
+    {% if office.plantilla_items.all %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Item No.</th>
+                    <th>Position</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in office.plantilla_items.all %}
+                    <tr>
+                        <td><a href="{% url 'plantilla:detail' item.pk %}">{{ item.item_number }}</a></td>
+                        <td>{{ item.position_title }}</td>
+                        <td>{{ item.get_position_status_display }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div class="empty">No plantilla items assigned.</div>
+    {% endif %}
+</section>
+{% endblock %}

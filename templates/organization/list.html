@@ -1,0 +1,42 @@
+{% extends "ehris/base.html" %}
+
+{% block title %}Organizations | eHRIS{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Organizations</h1>
+        <div class="muted">Active agency or LGU records.</div>
+    </div>
+    <a class="button" href="{% url 'organization:office_list' %}">View Offices</a>
+</div>
+
+<section class="panel">
+    {% if organizations %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Short Name</th>
+                    <th>Province Code</th>
+                    <th>Offices</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for organization in organizations %}
+                    <tr>
+                        <td>{{ organization.name }}</td>
+                        <td>{{ organization.short_name }}</td>
+                        <td>{{ organization.province_code|default:"-" }}</td>
+                        <td>{{ organization.offices.count }}</td>
+                        <td>{% if organization.is_active %}Active{% else %}Inactive{% endif %}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div class="empty">No organizations yet.</div>
+    {% endif %}
+</section>
+{% endblock %}

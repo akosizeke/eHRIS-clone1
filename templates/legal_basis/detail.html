@@ -1,0 +1,34 @@
+{% extends "ehris/base.html" %}
+
+{% block title %}{{ legal_basis }} | eHRIS{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>{{ legal_basis }}</h1>
+        <div class="muted">Legal basis detail</div>
+    </div>
+    <a class="button secondary" href="{% url 'legal_basis:list' %}">Back to list</a>
+</div>
+
+<section class="panel">
+    <dl class="details">
+        <dt>Reference Type</dt>
+        <dd>{{ legal_basis.get_reference_type_display }}</dd>
+        <dt>Reference Number</dt>
+        <dd>{{ legal_basis.reference_number }}</dd>
+        <dt>Approval Date</dt>
+        <dd>{{ legal_basis.approval_date|default:"-" }}</dd>
+        <dt>Effectivity Date</dt>
+        <dd>{{ legal_basis.effectivity_date }}</dd>
+        <dt>Document</dt>
+        <dd>
+            {% if legal_basis.document_path %}
+                <a href="{{ legal_basis.document_path.url }}">Open file</a>
+            {% else %}
+                <span class="muted">No file uploaded</span>
+            {% endif %}
+        </dd>
+    </dl>
+</section>
+{% endblock %}

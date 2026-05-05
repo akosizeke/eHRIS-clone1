@@ -1,0 +1,87 @@
+{% extends "ehris/base.html" %}
+
+{% block title %}Dashboard | eHRIS{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Dashboard</h1>
+        <div class="muted">Quick view of organization, legal basis, and plantilla records.</div>
+    </div>
+</div>
+
+<section class="grid" aria-label="Record counts">
+    <a class="card" href="{% url 'organization:list' %}">
+        <span class="muted">Organizations</span>
+        <span class="metric">{{ organization_count }}</span>
+    </a>
+    <a class="card" href="{% url 'organization:office_list' %}">
+        <span class="muted">Offices</span>
+        <span class="metric">{{ office_count }}</span>
+    </a>
+    <a class="card" href="{% url 'legal_basis:list' %}">
+        <span class="muted">Legal Bases</span>
+        <span class="metric">{{ legal_basis_count }}</span>
+    </a>
+    <a class="card" href="{% url 'plantilla:list' %}">
+        <span class="muted">Plantilla Items</span>
+        <span class="metric">{{ plantilla_count }}</span>
+    </a>
+</section>
+
+<section class="panel">
+    <div class="panel-header">
+        <h2>Recent Plantilla Items</h2>
+    </div>
+    {% if recent_items %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Item No.</th>
+                    <th>Position</th>
+                    <th>Office</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in recent_items %}
+                    <tr>
+                        <td><a href="{% url 'plantilla:detail' item.pk %}">{{ item.item_number }}</a></td>
+                        <td>{{ item.position_title }}</td>
+                        <td>{{ item.office }}</td>
+                        <td>{{ item.get_position_status_display }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div class="empty">No plantilla items yet.</div>
+    {% endif %}
+</section>
+
+<section class="panel">
+    <div class="panel-header">
+        <h2>Recent Legal Bases</h2>
+    </div>
+    {% if recent_legal_bases %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Reference</th>
+                    <th>Effectivity Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for legal_basis in recent_legal_bases %}
+                    <tr>
+                        <td><a href="{% url 'legal_basis:detail' legal_basis.pk %}">{{ legal_basis }}</a></td>
+                        <td>{{ legal_basis.effectivity_date }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div class="empty">No legal basis records yet.</div>
+    {% endif %}
+</section>
+{% endblock %}

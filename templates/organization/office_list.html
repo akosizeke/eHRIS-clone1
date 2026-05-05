@@ -1,0 +1,51 @@
+{% extends "ehris/base.html" %}
+
+{% block title %}Offices | eHRIS{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Offices</h1>
+        <div class="muted">Office list with validated type query parameter.</div>
+    </div>
+    <form class="toolbar" method="get">
+        <select name="type" aria-label="Office type">
+            <option value="">All types</option>
+            {% for value, label in office_type_choices %}
+                <option value="{{ value }}" {% if office_type == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit">Filter</button>
+        <a class="button secondary" href="{% url 'organization:office_list' %}">Reset</a>
+    </form>
+</div>
+
+<section class="panel">
+    {% if offices %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Office</th>
+                    <th>Organization</th>
+                    <th>Type</th>
+                    <th>Parent</th>
+                    <th>Head</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for office in offices %}
+                    <tr>
+                        <td><a href="{% url 'organization:office_detail' office.pk %}">{{ office.name }}</a></td>
+                        <td>{{ office.organization }}</td>
+                        <td>{{ office.get_office_type_display }}</td>
+                        <td>{{ office.parent_office|default:"-" }}</td>
+                        <td>{{ office.office_head|default:"-" }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div class="empty">No offices found.</div>
+    {% endif %}
+</section>
+{% endblock %}
