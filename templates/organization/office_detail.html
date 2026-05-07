@@ -28,31 +28,4 @@
     </dl>
 </section>
 
-<section class="panel">
-    <div class="panel-header">
-        <h2>Plantilla Items</h2>
-    </div>
-    {% if office.plantilla_items.all %}
-        <table>
-            <thead>
-                <tr>
-                    <th>Item No.</th>
-                    <th>Position</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for item in office.plantilla_items.all %}
-                    <tr>
-                        <td><a href="{% url 'plantilla:detail' item.pk %}">{{ item.item_number }}</a></td>
-                        <td>{{ item.position_title }}</td>
-                        <td>{{ item.get_position_status_display }}</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% else %}
-        <div class="empty">No plantilla items assigned.</div>
-    {% endif %}
-</section>
 {% endblock %}

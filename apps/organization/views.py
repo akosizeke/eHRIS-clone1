@@ -30,7 +30,7 @@ def office_list(request):
 
 def office_detail(request, pk):
     office = get_object_or_404(
-        Office.objects.select_related('organization', 'parent_office').prefetch_related('plantilla_items'),
+        Office.objects.select_related('organization', 'parent_office'),
         pk=pk,
     )
     return render(request, 'organization/office_detail.html', {'office': office})

@@ -6,7 +6,7 @@
 <div class="page-header">
     <div>
         <h1>Dashboard</h1>
-        <div class="muted">Quick view of organization, legal basis, and plantilla records.</div>
+        <div class="muted">Quick view of organization and legal basis records.</div>
     </div>
 </div>
 
@@ -23,40 +23,6 @@
         <span class="muted">Legal Bases</span>
         <span class="metric">{{ legal_basis_count }}</span>
     </a>
-    <a class="card" href="{% url 'plantilla:list' %}">
-        <span class="muted">Plantilla Items</span>
-        <span class="metric">{{ plantilla_count }}</span>
-    </a>
-</section>
-
-<section class="panel">
-    <div class="panel-header">
-        <h2>Recent Plantilla Items</h2>
-    </div>
-    {% if recent_items %}
-        <table>
-            <thead>
-                <tr>
-                    <th>Item No.</th>
-                    <th>Position</th>
-                    <th>Office</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for item in recent_items %}
-                    <tr>
-                        <td><a href="{% url 'plantilla:detail' item.pk %}">{{ item.item_number }}</a></td>
-                        <td>{{ item.position_title }}</td>
-                        <td>{{ item.office }}</td>
-                        <td>{{ item.get_position_status_display }}</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% else %}
-        <div class="empty">No plantilla items yet.</div>
-    {% endif %}
 </section>
 
 <section class="panel">
