@@ -1,0 +1,67 @@
+from django.http import HttpResponseBadRequest, JsonResponse
+from django.shortcuts import get_object_or_404
+
+from .models import Item
+
+
+def _item_payload(item):
+    return {
+        'id': str(item.id),
+        'item_number': item.item_number,
+        'position_title': item.position_title,
+        'salary_grade': item.salary_grade,
+        'office_id': str(item.office_id),
+        'employment_type': item.employment_type,
+        'funding_source': item.funding_source,
+        'position_status': item.position_status,
+        'legalbasis_id': str(item.legalbasis_id) if item.legalbasis_id else None,
+        'created_at': item.created_at.isoformat(),
+        'modified_at': item.modified_at.isoformat(),
+    }
+
+
+def _history_payload(history):
+    return {
+        'id': str(history.id),
+        'plantilla_item_id': str(history.plantilla_item_id),
+        'old_salary_grade': history.old_salary_grade,
+        'new_salary_grade': history.new_salary_grade,
+        'old_office_id': str(history.old_office_id) if history.old_office_id else None,
+        'new_office_id': str(history.new_office_id) if history.new_office_id else None,
+        'change_type': history.change_type,
+        'effective_date': history.effective_date.isoformat(),
+        'legalbasis_id': str(history.legalbasis_id) if history.legalbasis_id else None,
+        'created_at': history.created_at.isoformat(),
+        'modified_at': history.modified_at.isoformat(),
+    }
+
+
+def plantilla_list(request):
+    employment_type = request.GET.get('employment_type', '')
+    position_status = request.GET.get('status', '')
+    allowed_employment_types = {value for value, _ in Item.EMPLOYMENT_TYPE_CHOICES}
+    allowed_statuses = {value for value, _ in Item.POSITION_STATUS_CHOICES}
+
+    if employment_type and employment_type not in allowed_employment_types:
+        return HttpResponseBadRequest('Invalid employment type.')
+
+    if position_status and position_status not in allowed_statuses:
+        return HttpResponseBadRequest('Invalid position status.')
+
+    items = Item.objects.select_related('office', 'legalbasis')
+    if employment_type:
+        items = items.filter(employment_type=employment_type)
+    if position_status:
+        items = items.filter(position_status=position_status)
+
+    return JsonResponse({'results': [_item_payload(item) for item in items]})
+
+
+def plantilla_detail(request, pk):
+    item = get_object_or_404(
+        Item.objects.select_related('office', 'legalbasis').prefetch_related('history'),
+        pk=pk,
+    )
+    payload = _item_payload(item)
+    payload['history'] = [_history_payload(history) for history in item.history.all()]
+    return JsonResponse(payload)
