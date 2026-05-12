@@ -1,0 +1,18 @@
+<li>
+    <strong>{{ node.office.name }}</strong>
+    <span>{{ node.office.office_type }}</span>
+    {% if node.office.office_code %}
+        <span>{{ node.office.office_code }}</span>
+    {% endif %}
+    {% if node.office.office_head_title or node.office.office_head %}
+        <span>{{ node.office.office_head_title }} {{ node.office.office_head_display }}</span>
+    {% endif %}
+
+    {% if node.children %}
+        <ul>
+            {% for child in node.children %}
+                {% include 'organization/offices/office_node.html' with node=child %}
+            {% endfor %}
+        </ul>
+    {% endif %}
+</li>

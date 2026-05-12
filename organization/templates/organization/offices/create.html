@@ -1,0 +1,12 @@
+{% comment %}
+Backend fallback template only.
+The production New Unit UI can post to organization:office_create.
+{% endcomment %}
+
+<h1>Create Office</h1>
+
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Create Office</button>
+</form>

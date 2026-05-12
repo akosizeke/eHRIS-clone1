@@ -21,15 +21,17 @@ class OfficeAdmin(admin.ModelAdmin):
         'office_code',
         'office_type',
         'level_no',
-        'organization_id',
-        'parent_office_id',
+        'parent_office',
+        'organization',
+        'office_head',
         'office_head_title',
         'is_active',
+        'modified_at',
     )
-    list_filter = ('organization_id', 'office_type', 'office_head_title', 'is_active')
-    search_fields = ('name', 'office_code', 'organization_id__name')
+    list_filter = ('office_type', 'is_active', 'organization')
+    search_fields = ('name', 'office_code', 'organization__name')
     readonly_fields = ('id', 'created_at', 'modified_at')
-    autocomplete_fields = ('organization_id', 'parent_office_id')
+    autocomplete_fields = ('organization', 'parent_office')
 
 
 @admin.register(OfficeVersion)

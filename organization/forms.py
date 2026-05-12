@@ -17,15 +17,18 @@ class OrganizationForm(forms.ModelForm):
 
 
 class OfficeForm(forms.ModelForm):
+    organization = forms.ModelChoiceField(queryset=Organization.objects.all(), required=False)
+    parent_office = forms.ModelChoiceField(queryset=Office.objects.all(), required=False)
+    office_type = forms.ChoiceField(choices=Office.OfficeType.choices, required=False)
+
     class Meta:
         model = Office
         fields = [
-            'organization_id',
-            'parent_office_id',
+            'organization',
+            'parent_office',
             'name',
             'office_code',
             'office_type',
-            'level_no',
             'office_head',
             'office_head_title',
             'is_active',
@@ -33,15 +36,28 @@ class OfficeForm(forms.ModelForm):
 
     def clean(self):
         cleaned_data = super().clean()
-        organization = cleaned_data.get('organization_id')
-        parent_office = cleaned_data.get('parent_office_id')
+        organization = cleaned_data.get('organization')
+        parent_office = cleaned_data.get('parent_office')
+        office_type = cleaned_data.get('office_type')
 
-        if parent_office and self.instance.pk == parent_office.pk:
-            self.add_error('parent_office_id', 'Office cannot be its own parent.')
+        if parent_office and not organization:
+            cleaned_data['organization'] = parent_office.organization
+            organization = parent_office.organization
 
-        if organization and parent_office and parent_office.organization_id_id != organization.pk:
+        if not organization:
+            self.add_error('organization', 'This field is required.')
+
+        if not office_type:
+            if not parent_office:
+                cleaned_data['office_type'] = Office.OfficeType.DEPARTMENT
+            elif parent_office.office_type == Office.OfficeType.DEPARTMENT:
+                cleaned_data['office_type'] = Office.OfficeType.DIVISION
+            elif parent_office.office_type == Office.OfficeType.DIVISION:
+                cleaned_data['office_type'] = Office.OfficeType.UNIT
+
+        if organization and parent_office and parent_office.organization_id != organization.pk:
             self.add_error(
-                'parent_office_id',
+                'parent_office',
                 'Parent office must belong to the same organization.',
             )
 
