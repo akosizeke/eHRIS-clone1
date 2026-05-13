@@ -52,9 +52,9 @@ class Organization(models.Model):
 #
 # Example hierarchy:
 #
-# College of Engineering
-#    └── IT Department
-#           └── Web Development Unit
+# Top-level office
+#    └── Child division
+#           └── Child unit
 #
 # parent_office_id handles the hierarchy.
 # =========================================================

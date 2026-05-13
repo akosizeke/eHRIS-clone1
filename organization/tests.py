@@ -38,8 +38,8 @@ class OfficeHierarchyTests(TestCase):
         department = self.create_office()
         division = self.create_office(
             parent_office=department,
-            name='System Development and Maintenance Division',
-            office_code='SDMD',
+            name='Existing Division',
+            office_code='EXDIV',
             office_type=Office.OfficeType.DIVISION,
         )
 
@@ -50,14 +50,14 @@ class OfficeHierarchyTests(TestCase):
         department = self.create_office()
         division = self.create_office(
             parent_office=department,
-            name='System Development and Maintenance Division',
-            office_code='SDMD',
+            name='Existing Division',
+            office_code='EXDIV',
             office_type=Office.OfficeType.DIVISION,
         )
         unit = self.create_office(
             parent_office=division,
-            name='Web Application Unit',
-            office_code='WAU',
+            name='Existing Unit',
+            office_code='EXUNIT',
             office_type=Office.OfficeType.UNIT,
         )
 
@@ -76,8 +76,8 @@ class OfficeHierarchyTests(TestCase):
         department = self.create_office()
         active_division = self.create_office(
             parent_office=department,
-            name='System Development and Maintenance Division',
-            office_code='SDMD',
+            name='Existing Division',
+            office_code='EXDIV',
             office_type=Office.OfficeType.DIVISION,
             office_head_title='OIC',
         )
@@ -97,6 +97,27 @@ class OfficeHierarchyTests(TestCase):
         self.assertContains(response, department.name)
         self.assertContains(response, active_division.name)
         self.assertNotContains(response, 'Inactive Division')
+
+    def test_hierarchy_index_shows_empty_state_without_offices(self):
+        response = self.client.get(reverse('organization:office_hierarchy_index'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'No office hierarchy records yet.')
+        self.assertContains(
+            response,
+            'Click New Unit to create the first office, division, or unit.',
+        )
+
+    def test_hierarchy_page_renders_database_records_only(self):
+        department = self.create_office()
+
+        response = self.client.get(
+            reverse('organization:office_hierarchy', args=[department.pk])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, department.name)
+        self.assertContains(response, 'No child offices under this office yet.')
 
     def test_create_office_json_endpoint(self):
         user = User.objects.create_user(username='office-admin', password='test-pass')

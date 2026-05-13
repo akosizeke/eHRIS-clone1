@@ -1,0 +1,42 @@
+<aside class="org-shell-sidebar" aria-label="Organization Repository sidebar">
+    <div class="org-brand">
+        <span class="org-brand__mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+                <path d="M4 21h16v-2h-1V9.2l-7-4.7-7 4.7V19H4v2Zm3-2v-8.7l5-3.4 5 3.4V19h-2v-5H9v5H7Zm4 0v-3h2v3h-2ZM3 8.2 12 2l9 6.2-1.1 1.7L12 4.5 4.1 9.9 3 8.2Z"/>
+            </svg>
+        </span>
+        <span class="org-brand__title">Organization Repository</span>
+    </div>
+
+    <nav class="org-sidebar-nav">
+        <p class="org-sidebar-nav__section">MAIN</p>
+        <a class="org-sidebar-nav__link" href="{% url 'organization:dashboard' %}">
+            <span aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                    <path d="M4 11.5 12 5l8 6.5V20h-5v-5H9v5H4v-8.5Zm2 .9V18h1v-5h10v5h1v-5.6l-6-4.9-6 4.9Z"/>
+                </svg>
+            </span>
+            Dashboard
+        </a>
+
+        <p class="org-sidebar-nav__section">MANAGEMENT</p>
+        <a class="org-sidebar-nav__link is-active" href="{% url 'organization:office_hierarchy_index' %}">
+            <span aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                    <path d="M9 11a4 4 0 1 1 .1 0H9Zm0-2a2 2 0 1 0-.1 0H9Zm6.5 1.5a3 3 0 1 1 .1 0h-.1Zm0-2a1 1 0 1 0-.1 0h.1ZM3 20c.4-3.4 2.7-6 6-6s5.6 2.6 6 6h-2.1c-.4-2.2-1.8-4-3.9-4s-3.5 1.8-3.9 4H3Zm12.4-.1c-.1-.7-.3-1.4-.6-2 1.8.2 3.1 1.4 3.5 3.1h-2.1c-.2-.4-.5-.8-.8-1.1Zm1.4-6.9c2.7.1 4.8 2.1 5.2 5h-2.1c-.3-1.4-1.2-2.6-2.5-3.1-.2-.7-.4-1.3-.6-1.9Z"/>
+                </svg>
+            </span>
+            Organization
+        </a>
+
+        <p class="org-sidebar-nav__section">RECORDS</p>
+        <a class="org-sidebar-nav__link" href="#">
+            <span aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                    <path d="M5 20h3V9H5v11Zm5 0h3V4h-3v16Zm5 0h4v-7h-4v7ZM3 22V7h7V2h5v9h6v11H3Z"/>
+                </svg>
+            </span>
+            Plantilla Ledger
+        </a>
+    </nav>
+</aside>

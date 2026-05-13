@@ -1,36 +1,195 @@
-{% comment %}
-Backend fallback template only.
-The production UI can consume the JSON response from this same endpoint.
-{% endcomment %}
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organization Hierarchy</title>
+    <link rel="stylesheet" href="{% static 'organization/css/office_hierarchy.css' %}">
+</head>
+<body>
+    <div class="org-shell">
+        {% include 'organization/includes/sidebar.html' %}
 
-<h1>{{ office.name }}</h1>
+        <main class="org-main">
+            <header class="org-topbar">
+                <nav class="org-breadcrumb" aria-label="Breadcrumb">
+                    <a href="{% url 'organization:office_hierarchy_index' %}">Organization</a>
+                    <span aria-hidden="true">/</span>
+                    <span>
+                        {% if office %}
+                            {{ office.office_code|default:office.name }}
+                        {% elif organization %}
+                            {{ organization.short_name|default:organization.name }}
+                        {% else %}
+                            Repository
+                        {% endif %}
+                    </span>
+                    <span aria-hidden="true">/</span>
+                    <strong>Hierarchy</strong>
+                </nav>
 
-<nav>
-    {{ office.organization.name }} / {{ office.name }} / Hierarchy
-</nav>
+                <div class="org-actions">
+                    <form class="org-search" method="get" action="">
+                        <label class="sr-only" for="hierarchy-search">Search hierarchy</label>
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <path d="m20.7 19.3-4.1-4.1a7 7 0 1 0-1.4 1.4l4.1 4.1 1.4-1.4ZM5 11a5 5 0 1 1 10 0 5 5 0 0 1-10 0Z"/>
+                        </svg>
+                        <input id="hierarchy-search" type="search" name="q" value="{{ query }}" placeholder="Search...">
+                    </form>
+                    <a class="org-button org-button--primary" href="{{ create_office_url }}" data-open-new-unit-modal>
+                        New Unit
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6V5Z"/>
+                        </svg>
+                    </a>
+                </div>
+            </header>
 
-<section>
-    <p>Office Type: {{ office.office_type }}</p>
-    <p>Office Code: {{ office.office_code|default:'N/A' }}</p>
-    <p>Level: {{ office.level_no }}</p>
-    <p>
-        Parent Office:
-        {% if parent_office %}
-            {{ parent_office.name }}
-        {% else %}
-            Top-level office
-        {% endif %}
-    </p>
-    <p>
-        Office Head:
-        {% if office.office_head_title or office.office_head %}
-            {{ office.office_head_title }} {{ office.office_head_display }}
-        {% else %}
-            Not assigned
-        {% endif %}
-    </p>
-</section>
+            <nav class="org-tabs" aria-label="Organization sections">
+                <a href="#">Info</a>
+                <a href="#">About</a>
+                <a href="#">Office</a>
+                <a class="is-active" href="{% if office %}{% url 'organization:office_hierarchy' office.pk %}{% else %}{% url 'organization:office_hierarchy_index' %}{% endif %}">Hierarchy</a>
+            </nav>
 
-<ul>
-    {% include 'organization/offices/office_node.html' with node=hierarchy %}
-</ul>
+            {% if related_offices %}
+                <section class="org-related" aria-labelledby="office-related-title">
+                    <h2 id="office-related-title">Office Related</h2>
+                    <div class="org-related__list">
+                        {% for related_office in related_offices %}
+                            <a href="{% url 'organization:office_hierarchy' related_office.pk %}">
+                                {{ related_office.office_code|default:related_office.name }}
+                            </a>
+                        {% endfor %}
+                    </div>
+                </section>
+            {% endif %}
+
+            <section class="hierarchy-card" aria-label="Office hierarchy">
+                {% if hierarchy %}
+                    <div class="hierarchy-root">
+                        <span class="hierarchy-root__avatar" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" focusable="false">
+                                <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 2c-3.3 0-6 2.2-6 5v1h12v-1c0-2.8-2.7-5-6-5Zm0-8a2 2 0 1 1 0 4 2 2 0 0 1 0-4Zm-3.8 12c.5-1.2 2-2 3.8-2s3.3.8 3.8 2H8.2Z"/>
+                            </svg>
+                        </span>
+                        <div>
+                            <p>{{ hierarchy.office.office_head_title|default:hierarchy.office.office_type }}</p>
+                            <strong>{{ hierarchy.office.office_head_display|default:hierarchy.office.name }}</strong>
+                            {% if hierarchy.office.office_code %}
+                                <span>{{ hierarchy.office.office_code }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {% if hierarchy.children %}
+                        <div class="hierarchy-list">
+                            {% for child in hierarchy.children %}
+                                {% include 'organization/offices/office_node.html' with node=child %}
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="empty-state empty-state--compact">
+                            <p>No child offices under this office yet.</p>
+                            <span>Click New Unit to create a division or unit in the database.</span>
+                        </div>
+                    {% endif %}
+                {% else %}
+                    <div class="empty-state">
+                        {% if query %}
+                            <p>No matching office hierarchy records.</p>
+                            <span>Try another search term or click New Unit to create a record.</span>
+                        {% else %}
+                            <p>No office hierarchy records yet.</p>
+                            <span>Click New Unit to create the first office, division, or unit.</span>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </section>
+        </main>
+    </div>
+
+    <div class="unit-modal" data-new-unit-modal aria-hidden="true">
+        <div class="unit-modal__overlay" data-close-new-unit-modal></div>
+        <section class="unit-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="new-unit-modal-title" aria-describedby="new-unit-modal-subtitle">
+            <header class="unit-modal__header">
+                <div>
+                    <h2 id="new-unit-modal-title">Create New Unit</h2>
+                    <p id="new-unit-modal-subtitle">Add a new office, division, or unit to the organization hierarchy.</p>
+                </div>
+                <button class="unit-modal__close" type="button" aria-label="Close New Unit form" data-close-new-unit-modal>
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </header>
+
+            <form class="unit-form" method="post" action="{{ create_office_url }}" data-new-unit-form novalidate>
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+
+                <div class="form-errors unit-form__errors" data-form-errors hidden></div>
+
+                <div class="unit-form__body">
+                    <div class="unit-field">
+                        <label for="{{ new_office_form.organization.id_for_label }}">Organization <span>*</span></label>
+                        {{ new_office_form.organization }}
+                        <small class="field-error" data-error-for="organization"></small>
+                    </div>
+
+                    <div class="unit-field">
+                        <label for="{{ new_office_form.parent_office.id_for_label }}">Parent Office</label>
+                        {{ new_office_form.parent_office }}
+                        <small class="unit-field__help">Leave blank if this is a top-level office/department.</small>
+                        <small class="field-error" data-error-for="parent_office"></small>
+                    </div>
+
+                    <div class="unit-field">
+                        <label for="{{ new_office_form.name.id_for_label }}">Name <span>*</span></label>
+                        {{ new_office_form.name }}
+                        <small class="field-error" data-error-for="name"></small>
+                    </div>
+
+                    <div class="unit-field">
+                        <label for="{{ new_office_form.office_code.id_for_label }}">Office Code</label>
+                        {{ new_office_form.office_code }}
+                        <small class="field-error" data-error-for="office_code"></small>
+                    </div>
+
+                    <div class="unit-field">
+                        <label for="{{ new_office_form.office_type.id_for_label }}">Office Type <span>*</span></label>
+                        {{ new_office_form.office_type }}
+                        <small class="field-error" data-error-for="office_type"></small>
+                    </div>
+
+                    <div class="unit-field">
+                        <label for="{{ new_office_form.office_head.id_for_label }}">Office Head</label>
+                        {{ new_office_form.office_head }}
+                        <small class="field-error" data-error-for="office_head"></small>
+                    </div>
+
+                    <div class="unit-field">
+                        <label for="{{ new_office_form.office_head_title.id_for_label }}">Office Head Title</label>
+                        {{ new_office_form.office_head_title }}
+                        <small class="field-error" data-error-for="office_head_title"></small>
+                    </div>
+
+                    <div class="unit-field unit-field--checkbox">
+                        <label for="{{ new_office_form.is_active.id_for_label }}">
+                            {{ new_office_form.is_active }}
+                            <span>Is Active</span>
+                        </label>
+                        <small class="field-error" data-error-for="is_active"></small>
+                    </div>
+                </div>
+
+                <footer class="unit-modal__footer">
+                    <button class="org-button org-button--secondary" type="button" data-close-new-unit-modal>Cancel</button>
+                    <button class="org-button org-button--primary" type="submit">Create Unit</button>
+                </footer>
+            </form>
+        </section>
+    </div>
+
+    <script src="{% static 'organization/js/office_hierarchy.js' %}"></script>
+</body>
+</html>
