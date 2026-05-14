@@ -1,11 +1,11 @@
 from django.urls import path
-
 from . import views
 
 app_name = 'organization'
 
 urlpatterns = [
-    path('', views.organization_list, name='list'),
-    path('offices/', views.office_list, name='office_list'),
-    path('offices/<uuid:pk>/', views.office_detail, name='office_detail'),
+    path('', views.dashboard, name='dashboard'),
+    path('offices/', views.office_hierarchy_index, name='office_hierarchy_index'),
+    path('offices/create/', views.office_create, name='office_create'),
+    path('offices/<uuid:office_id>/', views.office_hierarchy, name='office_hierarchy'),
 ]
