@@ -170,6 +170,7 @@ def office_hierarchy(request, office_id):
     office = get_object_or_404(
         Office.objects.select_related('organization', 'parent_office'),
         pk=office_id,
+        is_active=True,
     )
     hierarchy = _build_office_tree(office, query=query)
 

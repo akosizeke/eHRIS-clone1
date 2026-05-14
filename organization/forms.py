@@ -41,12 +41,41 @@ class OfficeForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        selected_organization = None
+        organization_value = self.data.get('organization') if self.is_bound else self.initial.get('organization')
+        parent_value = self.data.get('parent_office') if self.is_bound else self.initial.get('parent_office')
+
+        if isinstance(organization_value, Organization):
+            selected_organization = organization_value
+        elif organization_value:
+            selected_organization = Organization.objects.filter(pk=organization_value).first()
+
+        if not selected_organization and isinstance(parent_value, Office):
+            selected_organization = parent_value.organization
+        elif not selected_organization and parent_value:
+            parent = Office.objects.filter(pk=parent_value).select_related('organization').first()
+            if parent:
+                selected_organization = parent.organization
+
         self.fields['organization'].queryset = Organization.objects.filter(
             is_active=True,
         ).order_by('name')
-        self.fields['parent_office'].queryset = Office.objects.filter(
+        parent_queryset = Office.objects.filter(
             is_active=True,
-        ).select_related('organization').order_by('organization__name', 'level_no', 'name')
+            office_type__in=[
+                Office.OfficeType.DEPARTMENT,
+                Office.OfficeType.DIVISION,
+            ],
+        ).select_related('organization')
+
+        if selected_organization:
+            parent_queryset = parent_queryset.filter(organization=selected_organization)
+
+        self.fields['parent_office'].queryset = parent_queryset.order_by(
+            'organization__name',
+            'level_no',
+            'name',
+        )
 
         self.fields['organization'].empty_label = 'Select organization'
         self.fields['parent_office'].empty_label = 'Select parent office (optional)'

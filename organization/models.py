@@ -162,6 +162,25 @@ class Office(models.Model):
                     f'An office under a {self.parent_office.office_type} must be a {expected_type}.'
                 ]
 
+        if self.pk:
+            expected_child_types = {
+                self.OfficeType.DEPARTMENT: self.OfficeType.DIVISION,
+                self.OfficeType.DIVISION: self.OfficeType.UNIT,
+            }
+            expected_child_type = expected_child_types.get(self.office_type)
+            child_offices = Office.objects.filter(parent_office=self)
+
+            if expected_child_type is None and child_offices.exists():
+                errors['office_type'] = errors.get('office_type', []) + [
+                    'A Unit cannot have child offices.'
+                ]
+            elif expected_child_type and child_offices.exclude(
+                office_type=expected_child_type,
+            ).exists():
+                errors['office_type'] = errors.get('office_type', []) + [
+                    f'A {self.office_type} can only have {expected_child_type} child offices.'
+                ]
+
         if self.pk and self.parent_office_id:
             ancestor = self.parent_office
             visited = set()
