@@ -1,0 +1,184 @@
+{% url 'organization:dashboard' as dashboard_url %}
+{% url 'organization:organization_page' as organization_page_url %}
+
+<style>
+    body {
+        margin: 0;
+        font-family: Arial, Helvetica, sans-serif;
+    }
+
+    .org-sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 280px;
+        height: 100vh;
+        padding: 24px 18px;
+        background: #f8fbff;
+        color: #172b4d;
+        border-right: 1px solid #d8e5f6;
+        box-sizing: border-box;
+        box-shadow: 8px 0 24px rgba(37, 99, 235, 0.08);
+    }
+
+    .org-sidebar__brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding-bottom: 18px;
+        border-bottom: 1px solid #d8e5f6;
+    }
+
+    .org-sidebar__seal,
+    .org-sidebar__icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+    }
+
+    .org-sidebar__seal {
+        width: 44px;
+        height: 44px;
+        border-radius: 8px;
+        background: #2563eb;
+        color: #ffffff;
+        box-shadow: 0 8px 18px rgba(37, 99, 235, 0.24);
+    }
+
+    .org-sidebar svg {
+        width: 22px;
+        height: 22px;
+        fill: currentColor;
+    }
+
+    .org-sidebar__eyebrow {
+        margin: 0 0 3px;
+        color: #60789e;
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .org-sidebar h1 {
+        margin: 0;
+        font-size: 20px;
+        line-height: 1.2;
+    }
+
+    .org-sidebar__nav {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-top: 28px;
+    }
+
+    .org-sidebar__section {
+        margin: 16px 10px 6px;
+        color: #7b8fac;
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .org-sidebar__link {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-height: 44px;
+        padding: 10px 12px;
+        color: #344766;
+        text-decoration: none;
+        border-radius: 8px;
+        font-size: 15px;
+        font-weight: 700;
+        box-sizing: border-box;
+    }
+
+    .org-sidebar__link:hover,
+    .org-sidebar__link:focus {
+        background: #eaf2ff;
+        color: #1d4ed8;
+        outline: none;
+    }
+
+    .org-sidebar__link.is-active {
+        background: #2563eb;
+        color: #ffffff;
+        box-shadow: 0 10px 22px rgba(37, 99, 235, 0.22);
+    }
+
+    .org-sidebar__icon {
+        width: 22px;
+        height: 22px;
+    }
+
+    .org-content {
+        margin-left: 280px;
+        padding: 24px;
+    }
+
+    @media (max-width: 800px) {
+        .org-sidebar {
+            position: static;
+            width: 100%;
+            height: auto;
+        }
+
+        .org-content {
+            margin-left: 0;
+        }
+    }
+</style>
+
+<aside class="org-sidebar" aria-label="Organization sidebar">
+    <div class="org-sidebar__brand">
+        <div class="org-sidebar__seal" aria-hidden="true">
+            <svg viewBox="0 0 24 24" role="img" focusable="false">
+                <path d="M12 3 4 6.8v5.8c0 4.7 3.3 7.2 8 8.4 4.7-1.2 8-3.7 8-8.4V6.8L12 3Zm0 2.2 6 2.8v4.6c0 3.3-2.1 5.3-6 6.4-3.9-1.1-6-3.1-6-6.4V8l6-2.8Z"/>
+            </svg>
+        </div>
+        <div>
+            <p class="org-sidebar__eyebrow">eHRIS</p>
+            <h1>Organization</h1>
+        </div>
+    </div>
+
+    <nav class="org-sidebar__nav">
+        <p class="org-sidebar__section">Dashboard</p>
+        <a class="org-sidebar__link {% if request.resolver_match.url_name == 'dashboard' %}is-active{% endif %}" href="{{ dashboard_url }}">
+            <span class="org-sidebar__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                    <path d="M4 13h7V4H4v9Zm2-7h3v5H6V6Zm7 14h7v-9h-7v9Zm2-7h3v5h-3v-5ZM4 20h7v-5H4v5Zm2-3h3v1H6v-1Zm7-8h7V4h-7v5Zm2-3h3v1h-3V6Z"/>
+                </svg>
+            </span>
+            Overview
+        </a>
+
+        <p class="org-sidebar__section">Organization Records</p>
+        <a class="org-sidebar__link {% if request.resolver_match.url_name == 'organization_page' %}is-active{% endif %}" href="{{ organization_page_url }}">
+            <span class="org-sidebar__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                    <path d="M4 20h16v-2h-1V8.5L12 4 5 8.5V18H4v2Zm3-2v-8.4l5-3.2 5 3.2V18h-2v-5H9v5H7Zm4 0v-3h2v3h-2Z"/>
+                </svg>
+            </span>
+            Organizations
+        </a>
+        <a class="org-sidebar__link" href="#office-structure">
+            <span class="org-sidebar__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                    <path d="M10 4h4v4h-4V4ZM4 16h4v4H4v-4Zm12 0h4v4h-4v-4Zm-5-6h2v2h6v3h-2v-1H7v1H5v-3h6v-2Z"/>
+                </svg>
+            </span>
+            Offices
+        </a>
+        <a class="org-sidebar__link" href="#office-versions">
+            <span class="org-sidebar__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                    <path d="M7 4h10v2H7V4Zm-2 4h14v2H5V8Zm2 4h10v8H7v-8Zm2 2v4h6v-4H9Z"/>
+                </svg>
+            </span>
+            Office Versions
+        </a>
+    </nav>
+</aside>

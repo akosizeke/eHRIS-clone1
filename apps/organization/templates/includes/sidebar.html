@@ -1,0 +1,56 @@
+{% url 'core:dashboard' as dashboard_url %}
+{% url 'organization:organization_page' as organization_page_url %}
+{% url 'organization:office_list' as office_list_url %}
+{% url 'plantilla:list' as plantilla_list_url %}
+
+<aside class="org-sidebar" aria-label="Organization sidebar">
+    <div class="org-sidebar__brand">
+        <div class="org-sidebar__seal" aria-hidden="true">
+            <svg viewBox="0 0 24 24" role="img" focusable="false">
+                <path d="M12 3 4 6.8v5.8c0 4.7 3.3 7.2 8 8.4 4.7-1.2 8-3.7 8-8.4V6.8L12 3Zm0 2.2 6 2.8v4.6c0 3.3-2.1 5.3-6 6.4-3.9-1.1-6-3.1-6-6.4V8l6-2.8Z"/>
+            </svg>
+        </div>
+        <div>
+            <p class="org-sidebar__eyebrow">eHRIS</p>
+            <h1>Organization</h1>
+        </div>
+    </div>
+
+    <nav class="org-sidebar__nav">
+        <p class="org-sidebar__section">Dashboard</p>
+        <a class="org-sidebar__link {% if request.resolver_match.app_name == 'core' and request.resolver_match.url_name == 'dashboard' %}is-active{% endif %}" href="{{ dashboard_url }}">
+            <span class="org-sidebar__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                    <path d="M4 13h7V4H4v9Zm2-7h3v5H6V6Zm7 14h7v-9h-7v9Zm2-7h3v5h-3v-5ZM4 20h7v-5H4v5Zm2-3h3v1H6v-1Zm7-8h7V4h-7v5Zm2-3h3v1h-3V6Z"/>
+                </svg>
+            </span>
+            Overview
+        </a>
+
+        <p class="org-sidebar__section">Organization Records</p>
+        <a class="org-sidebar__link {% if request.resolver_match.url_name == 'organization_page' or request.resolver_match.url_name == 'list' %}is-active{% endif %}" href="{{ organization_page_url }}">
+            <span class="org-sidebar__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                    <path d="M4 20h16v-2h-1V8.5L12 4 5 8.5V18H4v2Zm3-2v-8.4l5-3.2 5 3.2V18h-2v-5H9v5H7Zm4 0v-3h2v3h-2Z"/>
+                </svg>
+            </span>
+            Organizations
+        </a>
+        <a class="org-sidebar__link {% if request.resolver_match.url_name == 'office_list' or request.resolver_match.url_name == 'office_hierarchy_index' or request.resolver_match.url_name == 'office_hierarchy' or request.resolver_match.url_name == 'office_detail' or request.resolver_match.url_name == 'office_create' or request.resolver_match.url_name == 'office_version_create_for_office' or request.resolver_match.url_name == 'office_version_detail' %}is-active{% endif %}" href="{{ office_list_url }}">
+            <span class="org-sidebar__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                    <path d="M10 4h4v4h-4V4ZM4 16h4v4H4v-4Zm12 0h4v4h-4v-4Zm-5-6h2v2h6v3h-2v-1H7v1H5v-3h6v-2Z"/>
+                </svg>
+            </span>
+            Offices
+        </a>
+        <a class="org-sidebar__link {% if request.resolver_match.app_name == 'plantilla' %}is-active{% endif %}" href="{{ plantilla_list_url }}">
+            <span class="org-sidebar__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                    <path d="M6 3h12v18H6V3Zm2 2v14h8V5H8Zm2 2h4v2h-4V7Zm0 4h4v2h-4v-2Zm0 4h3v2h-3v-2Z"/>
+                </svg>
+            </span>
+            Plantilla
+        </a>
+    </nav>
+</aside>

@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organizations</title>
+    <style>
+        .org-page {
+            color: #172b4d;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        .page-header {
+            margin-bottom: 20px;
+        }
+
+        h2,
+        h3,
+        p {
+            margin-top: 0;
+        }
+
+        h2 {
+            margin-bottom: 6px;
+            font-size: 28px;
+        }
+
+        h3 {
+            margin-bottom: 14px;
+            font-size: 18px;
+        }
+
+        p,
+        .muted {
+            color: #60789e;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 340px 1fr;
+            gap: 20px;
+            align-items: start;
+        }
+
+        .panel {
+            padding: 18px;
+            border: 1px solid #d8e5f6;
+            border-radius: 8px;
+            background: #fff;
+        }
+
+        form {
+            display: grid;
+            gap: 12px;
+        }
+
+        label {
+            display: grid;
+            gap: 6px;
+            color: #344766;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        input,
+        textarea,
+        button {
+            border-radius: 8px;
+            font: inherit;
+        }
+
+        input,
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #c8d8ee;
+            box-sizing: border-box;
+        }
+
+        textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        button {
+            min-height: 38px;
+            padding: 8px 12px;
+            border: 0;
+            background: #2563eb;
+            color: #fff;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        button.secondary {
+            background: #edf2f7;
+            color: #344766;
+        }
+
+        button:disabled {
+            cursor: not-allowed;
+            opacity: 0.65;
+        }
+
+        .notice {
+            margin-bottom: 16px;
+            padding: 12px;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            background: #eff6ff;
+            color: #1e3a8a;
+            font-weight: 700;
+        }
+
+        .notice.error {
+            border-color: #fecaca;
+            background: #fef2f2;
+            color: #991b1b;
+        }
+
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .table-scroll {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            min-width: 720px;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 12px;
+            border-top: 1px solid #edf2f7;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        th {
+            color: #60789e;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+
+        .name {
+            font-weight: 700;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 999px;
+            background: #dcfce7;
+            color: #166534;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .status.inactive {
+            background: #f1f5f9;
+            color: #64748b;
+        }
+
+        .seal-image {
+            width: 48px;
+            height: 48px;
+            object-fit: contain;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 1000px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    {% include 'includes/sidebar.html' %}
+
+    <main class="org-content org-page">
+        <header class="page-header">
+            <h2>Organizations</h2>
+            <p>Register each city or agency as its own organization record.</p>
+        </header>
+
+        <div id="notice" class="notice hidden" role="status"></div>
+
+        <div class="layout">
+            <section class="panel">
+                <h3>Add Organization</h3>
+                <form id="organizationForm" enctype="multipart/form-data">
+                    <label>
+                        Full name
+                        <input name="name" type="text" required>
+                    </label>
+                    <label>
+                        Short name
+                        <input name="short_name" type="text" required>
+                    </label>
+                    <label>
+                        Province code
+                        <input name="province_code" type="text" required>
+                    </label>
+                    <label>
+                        Address
+                        <textarea name="address" required></textarea>
+                    </label>
+                    <label>
+                        Seal photo
+                        <input name="seal_path" type="file" accept="image/*" required>
+                    </label>
+                    <button id="submitButton" type="submit">Create Organization</button>
+                </form>
+            </section>
+
+            <section class="panel">
+                <div class="table-header">
+                    <h3>Registered Organizations</h3>
+                    <span id="organizationCount" class="muted">Loading</span>
+                </div>
+
+                <div class="table-scroll">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Province</th>
+                                <th>Address</th>
+                                <th>Seal</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="organizationRows"></tbody>
+                    </table>
+                </div>
+
+                <p id="emptyMessage" class="muted hidden">No organizations have been registered yet.</p>
+            </section>
+        </div>
+    </main>
+
+    <script>
+        const apiUrl = "{% url 'organization:organization_collection' %}";
+        const form = document.getElementById('organizationForm');
+        const submitButton = document.getElementById('submitButton');
+        const notice = document.getElementById('notice');
+        const rows = document.getElementById('organizationRows');
+        const count = document.getElementById('organizationCount');
+        const emptyMessage = document.getElementById('emptyMessage');
+
+        function showNotice(message, isError = false) {
+            notice.textContent = message;
+            notice.className = isError ? 'notice error' : 'notice';
+        }
+
+        function hideNotice() {
+            notice.className = 'notice hidden';
+        }
+
+        function errorText(payload) {
+            if (!payload.errors) return 'Request failed.';
+            return Object.entries(payload.errors)
+                .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(' ') : value}`)
+                .join(' ');
+        }
+
+        async function apiRequest(url, options = {}) {
+            const headers = {
+                'Accept': 'application/json',
+                ...(options.headers || {}),
+            };
+            if (!(options.body instanceof FormData)) {
+                headers['Content-Type'] = 'application/json';
+            }
+            const response = await fetch(url, {
+                ...options,
+                headers,
+            });
+            const payload = await response.json();
+            if (!response.ok) throw new Error(errorText(payload));
+            return payload;
+        }
+
+        function textCell(value) {
+            const td = document.createElement('td');
+            td.textContent = value || '';
+            return td;
+        }
+
+        function sealCell(organization) {
+            const td = document.createElement('td');
+            if (organization.seal_url) {
+                const image = document.createElement('img');
+                image.className = 'seal-image';
+                image.src = organization.seal_url;
+                image.alt = `${organization.name} seal`;
+                td.append(image);
+            } else {
+                td.textContent = organization.seal_path || '';
+            }
+            return td;
+        }
+
+        function renderOrganizations(organizations) {
+            rows.replaceChildren();
+            count.textContent = `${organizations.length} total`;
+            emptyMessage.classList.toggle('hidden', organizations.length > 0);
+
+            organizations.forEach((organization) => {
+                const tr = document.createElement('tr');
+                const name = document.createElement('td');
+                name.innerHTML = `
+                    <div class="name"></div>
+                    <div class="muted"></div>
+                    <div class="muted"></div>
+                `;
+                name.children[0].textContent = organization.name;
+                name.children[1].textContent = organization.short_name;
+                name.children[2].textContent = organization.id;
+
+                const status = document.createElement('td');
+                status.innerHTML = '<span class="status"></span>';
+                status.firstChild.textContent = organization.is_active ? 'Active' : 'Inactive';
+                status.firstChild.classList.toggle('inactive', !organization.is_active);
+
+                const action = document.createElement('td');
+                if (organization.is_active) {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = 'secondary';
+                    button.textContent = 'Deactivate';
+                    button.addEventListener('click', () => deactivateOrganization(organization.id, button));
+                    action.append(button);
+                } else {
+                    action.textContent = 'No action';
+                    action.className = 'muted';
+                }
+
+                tr.append(
+                    name,
+                    textCell(organization.province_code),
+                    textCell(organization.address),
+                    sealCell(organization),
+                    status,
+                    action
+                );
+                rows.append(tr);
+            });
+        }
+
+        async function loadOrganizations() {
+            try {
+                const payload = await apiRequest(`${apiUrl}?include_inactive=true`);
+                renderOrganizations(payload.results);
+            } catch (error) {
+                rows.replaceChildren();
+                count.textContent = 'Unavailable';
+                emptyMessage.classList.remove('hidden');
+                showNotice(error.message, true);
+            }
+        }
+
+        async function createOrganization(event) {
+            event.preventDefault();
+            hideNotice();
+            submitButton.disabled = true;
+            submitButton.textContent = 'Creating';
+
+            try {
+                await apiRequest(apiUrl, {
+                    method: 'POST',
+                    body: new FormData(form),
+                });
+                form.reset();
+                showNotice('Organization created.');
+                await loadOrganizations();
+            } catch (error) {
+                showNotice(error.message, true);
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Create Organization';
+            }
+        }
+
+        async function deactivateOrganization(id, button) {
+            button.disabled = true;
+            button.textContent = 'Deactivating';
+
+            try {
+                await apiRequest(`${apiUrl}${id}/`, {method: 'DELETE'});
+                showNotice('Organization deactivated.');
+                await loadOrganizations();
+            } catch (error) {
+                button.disabled = false;
+                button.textContent = 'Deactivate';
+                showNotice(error.message, true);
+            }
+        }
+
+        form.addEventListener('submit', createOrganization);
+        loadOrganizations();
+    </script>
+</body>
+</html>

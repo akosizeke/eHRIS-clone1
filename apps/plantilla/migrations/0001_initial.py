@@ -11,7 +11,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('legal_basis', '0001_initial'),
-        ('organization', '0001_initial'),
+        ('organization', '0004_alter_organization_options_office_officeversion_and_more'),
     ]
 
     operations = [

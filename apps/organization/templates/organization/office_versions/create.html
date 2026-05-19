@@ -1,0 +1,41 @@
+{% extends "organization/base.html" %}
+
+{% block title %}Create Office Version | eHRIS{% endblock %}
+
+{% block content %}
+<header class="page-header">
+    <div>
+        <h1>Create Office Version</h1>
+        <p class="muted">Record a history entry for {{ office.name }}.</p>
+    </div>
+    <a class="button secondary" href="{% url 'organization:office_hierarchy' office.pk %}">Back to Office</a>
+</header>
+
+<section class="panel">
+    <form method="post">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+            <div class="notice error">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        {% for field in form %}
+            <label>
+                {{ field.label }}
+                {{ field }}
+                {% if field.help_text %}
+                    <span class="muted">{{ field.help_text }}</span>
+                {% endif %}
+                {% for error in field.errors %}
+                    <span class="notice error">{{ error }}</span>
+                {% endfor %}
+            </label>
+        {% endfor %}
+
+        <div class="toolbar">
+            <button type="submit">Create Office Version</button>
+            <a class="button secondary" href="{% url 'organization:office_hierarchy' office.pk %}">Cancel</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

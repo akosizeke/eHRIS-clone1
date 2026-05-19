@@ -1,0 +1,31 @@
+{% extends "organization/base.html" %}
+
+{% block title %}{{ version.office_id }} Version {{ version.version_no }} | eHRIS{% endblock %}
+
+{% block content %}
+<header class="page-header">
+    <div>
+        <h1>{{ version.office_id }}</h1>
+        <p class="muted">Version {{ version.version_no }}</p>
+    </div>
+    <a class="button secondary" href="{% url 'organization:office_hierarchy' office.pk %}">Back to Office</a>
+</header>
+
+<section class="panel">
+    <h3>Version Details</h3>
+    <dl class="detail-list">
+        <dt>Office</dt>
+        <dd>{{ version.office_id }}</dd>
+        <dt>Version No.</dt>
+        <dd>{{ version.version_no }}</dd>
+        <dt>Effective Start</dt>
+        <dd>{{ version.effective_start_date }}</dd>
+        <dt>Effective End</dt>
+        <dd>{{ version.effective_end_date|default:"-" }}</dd>
+        <dt>Legal Basis</dt>
+        <dd>{{ version.legal_basis }}</dd>
+        <dt>Description</dt>
+        <dd>{{ version.change_description }}</dd>
+    </dl>
+</section>
+{% endblock %}

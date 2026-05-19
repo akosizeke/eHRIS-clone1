@@ -1,0 +1,62 @@
+{% extends "organization/base.html" %}
+
+{% block title %}Plantilla | eHRIS{% endblock %}
+
+{% block content %}
+<header class="page-header">
+    <div>
+        <h1>Plantilla</h1>
+        <p class="muted">Position items by office, employment type, and status.</p>
+    </div>
+    <form class="toolbar" method="get">
+        <select name="employment_type" aria-label="Employment type">
+            <option value="">All employment types</option>
+            {% for value, label in employment_type_choices %}
+                <option value="{{ value }}" {% if employment_type == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+        <select name="status" aria-label="Position status">
+            <option value="">All statuses</option>
+            {% for value, label in position_status_choices %}
+                <option value="{{ value }}" {% if position_status == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit">Filter</button>
+        <a class="button secondary" href="{% url 'plantilla:list' %}">Reset</a>
+        <a class="button" href="{% url 'plantilla:create' %}">Add Plantilla</a>
+    </form>
+</header>
+
+<section class="panel">
+    {% if items %}
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Item No.</th>
+                        <th>Position</th>
+                        <th>Office</th>
+                        <th>SG</th>
+                        <th>Employment</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                        <tr>
+                            <td><a href="{% url 'plantilla:detail' item.pk %}">{{ item.item_number }}</a></td>
+                            <td>{{ item.position_title }}</td>
+                            <td>{{ item.office }}</td>
+                            <td>{{ item.salary_grade }}</td>
+                            <td>{{ item.get_employment_type_display }}</td>
+                            <td>{{ item.get_position_status_display }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="empty">No plantilla items found.</div>
+    {% endif %}
+</section>
+{% endblock %}

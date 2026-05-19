@@ -34,6 +34,7 @@ INSTALLED_APPS = [
 
     # Local apps
     'apps.core',          # former 'core'
+    'apps.employee_profile',
     'apps.legal_basis',
     'apps.organization',
     'apps.plantilla',

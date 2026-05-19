@@ -1,25 +1,25 @@
-{% extends "ehris/base.html" %}
+{% extends "organization/base.html" %}
 
 {% block title %}Dashboard | eHRIS{% endblock %}
 
 {% block content %}
-<div class="page-header">
+<header class="page-header">
     <div>
         <h1>Dashboard</h1>
         <div class="muted">Quick view of organization and legal basis records.</div>
     </div>
-</div>
+</header>
 
-<section class="grid" aria-label="Record counts">
-    <a class="card" href="{% url 'organization:list' %}">
+<section class="dashboard-grid" aria-label="Record counts">
+    <a class="summary-card" href="{% url 'organization:list' %}">
         <span class="muted">Organizations</span>
         <span class="metric">{{ organization_count }}</span>
     </a>
-    <a class="card" href="{% url 'organization:office_list' %}">
+    <a class="summary-card" href="{% url 'organization:office_list' %}">
         <span class="muted">Offices</span>
         <span class="metric">{{ office_count }}</span>
     </a>
-    <a class="card" href="{% url 'legal_basis:list' %}">
+    <a class="summary-card" href="{% url 'legal_basis:list' %}">
         <span class="muted">Legal Bases</span>
         <span class="metric">{{ legal_basis_count }}</span>
     </a>
@@ -30,22 +30,24 @@
         <h2>Recent Legal Bases</h2>
     </div>
     {% if recent_legal_bases %}
-        <table>
-            <thead>
-                <tr>
-                    <th>Reference</th>
-                    <th>Effectivity Date</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for legal_basis in recent_legal_bases %}
+        <div class="table-scroll">
+            <table>
+                <thead>
                     <tr>
-                        <td><a href="{% url 'legal_basis:detail' legal_basis.pk %}">{{ legal_basis }}</a></td>
-                        <td>{{ legal_basis.effectivity_date }}</td>
+                        <th>Reference</th>
+                        <th>Effectivity Date</th>
                     </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    {% for legal_basis in recent_legal_bases %}
+                        <tr>
+                            <td><a href="{% url 'legal_basis:detail' legal_basis.pk %}">{{ legal_basis }}</a></td>
+                            <td>{{ legal_basis.effectivity_date }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     {% else %}
         <div class="empty">No legal basis records yet.</div>
     {% endif %}

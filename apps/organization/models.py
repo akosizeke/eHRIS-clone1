@@ -17,25 +17,35 @@ from django.db.models import Q
 # =========================================================
 
 class Organization(models.Model):
-
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=255)
     short_name = models.CharField(max_length=100)
     province_code = models.CharField(max_length=100)
     address = models.TextField()
-
     seal_path = models.CharField(max_length=255)
-
     is_active = models.BooleanField(default=True)
-
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'organization'
+        ordering = ['name']
 
     def __str__(self):
         return self.name
+
+    def clean(self):
+        super().clean()
+        if not self.name or not self.name.strip():
+            raise ValidationError({'name': 'Organization name is required.'})
+
+    def deactivate(self):
+        self.is_active = False
+        self.save(update_fields=['is_active', 'modified_at'])
+
+    def activate(self):
+        self.is_active = True
+        self.save(update_fields=['is_active', 'modified_at'])
 
 
 # =========================================================
@@ -53,8 +63,6 @@ class Organization(models.Model):
 # Example hierarchy:
 #
 # Top-level office
-#    ÔööÔöÇÔöÇ Child division
-#           ÔööÔöÇÔöÇ Child unit
 #
 # parent_office_id handles the hierarchy.
 # =========================================================
@@ -92,8 +100,14 @@ class Office(models.Model):
     office_code = models.CharField(max_length=100, blank=True, default='')
     office_type = models.CharField(max_length=100, choices=OfficeType.choices)
     level_no = models.PositiveIntegerField(default=1)
-    # Replace with a ForeignKey once the employee_profile app/model is available.
-    office_head = models.UUIDField(null=True, blank=True)
+    office_head = models.ForeignKey(
+        'employee_profile.EmployeeProfile',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='headed_offices',
+        db_column='office_head_id',
+    )
     office_head_title = models.CharField(max_length=100, blank=True, default='')
     is_active = models.BooleanField(default=True)
 
@@ -249,7 +263,12 @@ class OfficeVersion(models.Model):
     version_no = models.IntegerField()
     effective_start_date = models.DateField()
     effective_end_date = models.DateField(null=True, blank=True)
-    legal_basis = models.UUIDField()
+    legal_basis = models.ForeignKey(
+        'legal_basis.LegalBasis',
+        on_delete=models.PROTECT,
+        related_name='office_versions',
+        db_column='legal_basis_id',
+    )
     change_description = models.TextField()
 
     created_at = models.DateTimeField(auto_now_add=True)

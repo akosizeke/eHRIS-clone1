@@ -1,0 +1,44 @@
+{% extends "organization/base.html" %}
+
+{% block title %}Create Office | eHRIS{% endblock %}
+
+{% block content %}
+<header class="page-header">
+    <div>
+        <h1>Create Office</h1>
+        <p class="muted">Add a department, division, or unit to the organization hierarchy.</p>
+    </div>
+    <a class="button secondary" href="{{ hierarchy_url }}">Back to Offices</a>
+</header>
+
+<section class="panel">
+    <form method="post">
+        {% csrf_token %}
+        {% if next_url %}
+            <input type="hidden" name="next" value="{{ next_url }}">
+        {% endif %}
+
+        {% if form.non_field_errors %}
+            <div class="notice error">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        {% for field in form %}
+            <label>
+                {{ field.label }}
+                {{ field }}
+                {% if field.help_text %}
+                    <span class="muted">{{ field.help_text }}</span>
+                {% endif %}
+                {% for error in field.errors %}
+                    <span class="notice error">{{ error }}</span>
+                {% endfor %}
+            </label>
+        {% endfor %}
+
+        <div class="toolbar">
+            <button type="submit">Create Office</button>
+            <a class="button secondary" href="{{ hierarchy_url }}">Cancel</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

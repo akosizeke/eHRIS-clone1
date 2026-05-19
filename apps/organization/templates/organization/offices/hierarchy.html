@@ -1,0 +1,143 @@
+{% extends "organization/base.html" %}
+
+{% block title %}Offices | eHRIS{% endblock %}
+
+{% block content %}
+<header class="page-header">
+    <div>
+        <h1>Offices</h1>
+        <p class="muted">
+            {% if organization %}
+                {{ organization.name }} office hierarchy.
+            {% else %}
+                Office hierarchy records.
+            {% endif %}
+        </p>
+    </div>
+    <form class="toolbar" method="get">
+        <input name="q" type="search" value="{{ query }}" placeholder="Search offices">
+        <button type="submit">Search</button>
+        <a class="button secondary" href="{% url 'organization:office_hierarchy_index' %}">Reset</a>
+        <a class="button" href="{{ create_office_url }}">Add Office</a>
+    </form>
+</header>
+
+{% if office %}
+    <div class="office-grid">
+        <section class="panel">
+            <h3>Selected Office</h3>
+            <dl class="detail-list">
+                <dt>Name</dt>
+                <dd>{{ office.name }}</dd>
+                <dt>Code</dt>
+                <dd>{{ office.office_code|default:"-" }}</dd>
+                <dt>Type</dt>
+                <dd>{{ office.get_office_type_display }}</dd>
+                <dt>Level</dt>
+                <dd>{{ office.level_no }}</dd>
+                <dt>Parent</dt>
+                <dd>{{ parent_office|default:"-" }}</dd>
+                <dt>Head</dt>
+                <dd>{{ office.office_head_display|default:"-" }}</dd>
+            </dl>
+        </section>
+
+        <section class="panel">
+            <h3>Related Offices</h3>
+            {% if related_offices %}
+                <div class="office-tree">
+                    {% for related in related_offices %}
+                        <a class="summary-card" href="{% url 'organization:office_hierarchy' related.pk %}">
+                            <span class="name">{{ related.name }}</span>
+                            <span class="muted">{{ related.get_office_type_display }}</span>
+                        </a>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty">No related offices found.</div>
+            {% endif %}
+        </section>
+
+        <section class="panel">
+            <h3>Children</h3>
+            {% if child_offices %}
+                <div class="office-tree">
+                    {% for child in child_offices %}
+                        <a class="summary-card" href="{% url 'organization:office_hierarchy' child.office.pk %}">
+                            <span class="name">{{ child.office.name }}</span>
+                            <span class="muted">{{ child.office.get_office_type_display }}</span>
+                        </a>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty">No child offices found.</div>
+            {% endif %}
+        </section>
+    </div>
+
+    <section class="panel">
+        <div class="panel-header">
+            <h3>Hierarchy</h3>
+        </div>
+        {% if hierarchy %}
+            <div class="office-tree">
+                <div class="office-node">
+                    <div class="name">{{ hierarchy.office.name }}</div>
+                    <div class="muted">{{ hierarchy.office.get_office_type_display }}</div>
+                    {% if hierarchy.children %}
+                        <div class="office-node__children">
+                            {% for child in hierarchy.children %}
+                                <div class="office-node">
+                                    <a class="name" href="{% url 'organization:office_hierarchy' child.office.pk %}">{{ child.office.name }}</a>
+                                    <div class="muted">{{ child.office.get_office_type_display }}</div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        {% else %}
+            <div class="empty">No hierarchy available.</div>
+        {% endif %}
+    </section>
+
+    <section class="panel section-gap">
+        <div class="panel-header">
+            <h3>Office Versions</h3>
+            <a class="button" href="{{ create_office_version_url }}">Add Version</a>
+        </div>
+        {% if office_versions %}
+            <div class="table-scroll">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Version</th>
+                            <th>Start</th>
+                            <th>End</th>
+                            <th>Legal Basis</th>
+                            <th>Change</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for version in office_versions %}
+                            <tr>
+                                <td><a href="{% url 'organization:office_version_detail' office.pk version.pk %}">{{ version.version_no }}</a></td>
+                                <td>{{ version.effective_start_date }}</td>
+                                <td>{{ version.effective_end_date|default:"Current" }}</td>
+                                <td>{{ version.legal_basis }}</td>
+                                <td>{{ version.change_description }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="empty">No version history recorded for this office.</div>
+        {% endif %}
+    </section>
+{% else %}
+    <section class="panel">
+        <div class="empty">No active offices found. Create an office to start the hierarchy.</div>
+    </section>
+{% endif %}
+{% endblock %}

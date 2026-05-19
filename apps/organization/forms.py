@@ -20,10 +20,6 @@ class OfficeForm(forms.ModelForm):
     organization = forms.ModelChoiceField(queryset=Organization.objects.all(), required=True)
     parent_office = forms.ModelChoiceField(queryset=Office.objects.all(), required=False)
     office_type = forms.ChoiceField(choices=Office.OfficeType.choices, required=True)
-    office_head = forms.UUIDField(
-        required=False,
-        widget=forms.Select(choices=[('', 'Select office head (optional)')]),
-    )
 
     class Meta:
         model = Office
@@ -79,6 +75,7 @@ class OfficeForm(forms.ModelForm):
 
         self.fields['organization'].empty_label = 'Select organization'
         self.fields['parent_office'].empty_label = 'Select parent office (optional)'
+        self.fields['office_head'].empty_label = 'Select office head (optional)'
         self.fields['office_type'].choices = [('', 'Select office type'), *Office.OfficeType.choices]
         self.fields['is_active'].initial = True
 
@@ -144,3 +141,22 @@ class OfficeVersionForm(forms.ModelForm):
             'legal_basis',
             'change_description',
         ]
+
+    def __init__(self, *args, office=None, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.fields['office_id'].empty_label = 'Select office'
+        self.fields['legal_basis'].empty_label = 'Select legal basis'
+        if office is not None:
+            self.fields['office_id'].initial = office
+            self.fields['office_id'].disabled = True
+
+        for field in self.fields.values():
+            field.widget.attrs['class'] = 'org-form-control'
+
+        self.fields['effective_start_date'].widget = forms.DateInput(
+            attrs={'type': 'date', 'class': 'org-form-control'}
+        )
+        self.fields['effective_end_date'].widget = forms.DateInput(
+            attrs={'type': 'date', 'class': 'org-form-control'}
+        )

@@ -1,6 +1,8 @@
 from django.http import HttpResponseBadRequest, JsonResponse
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 
+from .forms import ItemForm
 from .models import Item
 
 
@@ -54,7 +56,16 @@ def plantilla_list(request):
     if position_status:
         items = items.filter(position_status=position_status)
 
-    return JsonResponse({'results': [_item_payload(item) for item in items]})
+    if _request_wants_json(request):
+        return JsonResponse({'results': [_item_payload(item) for item in items]})
+
+    return render(request, 'plantilla/list.html', {
+        'items': items,
+        'employment_type': employment_type,
+        'position_status': position_status,
+        'employment_type_choices': Item.EMPLOYMENT_TYPE_CHOICES,
+        'position_status_choices': Item.POSITION_STATUS_CHOICES,
+    })
 
 
 def plantilla_detail(request, pk):
@@ -64,4 +75,42 @@ def plantilla_detail(request, pk):
     )
     payload = _item_payload(item)
     payload['history'] = [_history_payload(history) for history in item.history.all()]
-    return JsonResponse(payload)
+    if _request_wants_json(request):
+        return JsonResponse(payload)
+
+    return render(request, 'plantilla/detail.html', {
+        'item': item,
+        'history': item.history.all(),
+    })
+
+
+def plantilla_create(request):
+    if request.method == 'POST':
+        form = ItemForm(request.POST)
+        if form.is_valid():
+            item = form.save()
+            if _request_wants_json(request):
+                return JsonResponse(_item_payload(item), status=201)
+            return redirect(reverse('plantilla:detail', args=[item.pk]))
+
+        if _request_wants_json(request):
+            return JsonResponse({
+                'errors': {
+                    field: [str(error) for error in errors]
+                    for field, errors in form.errors.items()
+                }
+            }, status=400)
+    else:
+        form = ItemForm()
+
+    return render(request, 'plantilla/create.html', {
+        'form': form,
+    })
+
+
+def _request_wants_json(request):
+    return (
+        request.headers.get('x-requested-with') == 'XMLHttpRequest'
+        or 'application/json' in request.headers.get('accept', '')
+        or request.content_type == 'application/json'
+    )

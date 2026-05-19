@@ -23,6 +23,7 @@ urlpatterns = [
     path('', include('apps.core.urls')),
     path('legal-basis/', include('apps.legal_basis.urls')),
     path('organization/', include('apps.organization.urls')),
+    path('plantilla/', include('apps.plantilla.urls')),
     path('admin/', admin.site.urls),
 ]
 

@@ -8,7 +8,7 @@ class Item(AbstractBaseModel):
         ('permanent', 'Permanent'),
         ('casual',    'Casual'),
         ('contractual', 'Contractual'),
-        ('coterminous', 'Co-terminous'),
+        ('coterminous', 'Job Order/Coterminous'),
     ]
 
     FUNDING_SOURCE_CHOICES = [
