@@ -22,7 +22,7 @@ from .serializers import (
 
 
 def dashboard(request):
-    return render(request, 'dashboard.html')
+    return redirect('core:dashboard')
 
 
 # =========================================================
