@@ -28,21 +28,26 @@ class Organization(models.Model):
     modified_at = models.DateTimeField(auto_now=True)
 
     class Meta:
+        # Uses the existing organization table and sorts organization lists by name.
         db_table = 'organization'
         ordering = ['name']
 
+    # Display name used in admin, forms, and foreign key dropdowns.
     def __str__(self):
         return self.name
 
+    # Validates required organization name before saving through forms/API.
     def clean(self):
         super().clean()
         if not self.name or not self.name.strip():
             raise ValidationError({'name': 'Organization name is required.'})
 
+    # Soft-disables an organization without deleting related office records.
     def deactivate(self):
         self.is_active = False
         self.save(update_fields=['is_active', 'modified_at'])
 
+    # Re-enables a previously inactive organization.
     def activate(self):
         self.is_active = True
         self.save(update_fields=['is_active', 'modified_at'])
@@ -68,6 +73,7 @@ class Organization(models.Model):
 # =========================================================
 
 class Office(models.Model):
+    # Allowed office hierarchy levels: Department > Division > Unit.
     class OfficeType(models.TextChoices):
         DEPARTMENT = 'Department', 'Department'
         DIVISION = 'Division', 'Division'
@@ -115,6 +121,7 @@ class Office(models.Model):
     modified_at = models.DateTimeField(auto_now=True)
 
     class Meta:
+        # Stores offices in the organization schema and keeps hierarchy lists ordered.
         db_table = 'organization_office'
         ordering = ['level_no', 'name']
         constraints = [
@@ -129,13 +136,16 @@ class Office(models.Model):
         code = f' ({self.office_code})' if self.office_code else ''
         return f'{self.name}{code}'
 
+    # Returns the assigned office head for templates without showing None.
     @property
     def office_head_display(self):
         return self.office_head or ''
 
+    # Computes hierarchy level based on the selected parent office.
     def _set_level_no_from_parent(self):
         self.level_no = self.parent_office.level_no + 1 if self.parent_office_id else 1
 
+    # Enforces organization, parent, and Department/Division/Unit hierarchy rules.
     def clean(self):
         super().clean()
         errors = {}
@@ -224,6 +234,7 @@ class Office(models.Model):
         if errors:
             raise ValidationError(errors)
 
+    # Runs full model validation before saving office hierarchy records.
     def save(self, *args, **kwargs):
         self.full_clean()
         return super().save(*args, **kwargs)
@@ -275,7 +286,9 @@ class OfficeVersion(models.Model):
     modified_at = models.DateTimeField(auto_now=True)
 
     class Meta:
+        # Stores historical office version records for the organization module.
         db_table = 'organization_office_version'
 
+    # Display label used by admin and office version templates.
     def __str__(self):
         return f"{self.office_id.name} - Version {self.version_no}"

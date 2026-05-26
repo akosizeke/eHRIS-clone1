@@ -1,8 +1,10 @@
+{# Builds reusable sidebar URLs for dashboard, organizations, offices, and plantilla. #}
 {% url 'core:dashboard' as dashboard_url %}
 {% url 'organization:organization_page' as organization_page_url %}
 {% url 'organization:office_list' as office_list_url %}
 {% url 'plantilla:list' as plantilla_list_url %}
 
+{# Shared navigation sidebar included by organization/base.html. #}
 <aside class="org-sidebar" aria-label="Organization sidebar">
     <div class="org-sidebar__brand">
         <div class="org-sidebar__seal" aria-hidden="true">

@@ -1,8 +1,10 @@
 {% extends "organization/base.html" %}
+{# Office create template rendered by office_create using OfficeForm. #}
 
 {% block title %}Create Office | eHRIS{% endblock %}
 
 {% block content %}
+{# Header links back to the office hierarchy workflow. #}
 <header class="page-header">
     <div>
         <h1>Create Office</h1>
@@ -11,6 +13,7 @@
     <a class="button secondary" href="{{ hierarchy_url }}">Back to Offices</a>
 </header>
 
+{# Form creates Department, Division, or Unit records under an organization. #}
 <section class="panel">
     <form method="post">
         {% csrf_token %}

@@ -1,8 +1,10 @@
 {% extends "organization/base.html" %}
+{# Dashboard template rendered by apps.core.views.dashboard. #}
 
 {% block title %}Dashboard | eHRIS{% endblock %}
 
 {% block content %}
+{# Summary heading for organization and legal basis counts. #}
 <header class="page-header">
     <div>
         <h1>Dashboard</h1>
@@ -10,6 +12,7 @@
     </div>
 </header>
 
+{# Count cards link to organization, office, and legal basis workflows. #}
 <section class="dashboard-grid" aria-label="Record counts">
     <a class="summary-card" href="{% url 'organization:list' %}">
         <span class="muted">Organizations</span>
@@ -25,6 +28,7 @@
     </a>
 </section>
 
+{# Recent legal basis records come from the dashboard view context. #}
 <section class="panel">
     <div class="panel-header">
         <h2>Recent Legal Bases</h2>

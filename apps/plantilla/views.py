@@ -6,6 +6,7 @@ from .forms import ItemForm
 from .models import Item
 
 
+# Converts a plantilla item model into JSON for API-style responses.
 def _item_payload(item):
     return {
         'id': str(item.id),
@@ -22,6 +23,7 @@ def _item_payload(item):
     }
 
 
+# Converts one plantilla history record into JSON for the detail endpoint.
 def _history_payload(history):
     return {
         'id': str(history.id),
@@ -38,6 +40,7 @@ def _history_payload(history):
     }
 
 
+# Lists plantilla items with optional employment type and status filters.
 def plantilla_list(request):
     employment_type = request.GET.get('employment_type', '')
     position_status = request.GET.get('status', '')
@@ -68,6 +71,7 @@ def plantilla_list(request):
     })
 
 
+# Shows one plantilla item and its history, as HTML or JSON.
 def plantilla_detail(request, pk):
     item = get_object_or_404(
         Item.objects.select_related('office', 'legalbasis').prefetch_related('history'),
@@ -84,6 +88,7 @@ def plantilla_detail(request, pk):
     })
 
 
+# Creates a plantilla item through the ItemForm and redirects to its detail page.
 def plantilla_create(request):
     if request.method == 'POST':
         form = ItemForm(request.POST)
@@ -108,6 +113,7 @@ def plantilla_create(request):
     })
 
 
+# Detects whether the caller expects JSON instead of an HTML template.
 def _request_wants_json(request):
     return (
         request.headers.get('x-requested-with') == 'XMLHttpRequest'

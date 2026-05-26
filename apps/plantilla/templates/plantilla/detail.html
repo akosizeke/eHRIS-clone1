@@ -1,8 +1,10 @@
 {% extends "organization/base.html" %}
+{# Plantilla detail template rendered by plantilla_detail. #}
 
 {% block title %}{{ item.item_number }} | Plantilla{% endblock %}
 
 {% block content %}
+{# Header identifies the selected plantilla item and links back to the list. #}
 <header class="page-header">
     <div>
         <h1>{{ item.position_title }}</h1>
@@ -11,6 +13,7 @@
     <a class="button secondary" href="{% url 'plantilla:list' %}">Back to Plantilla</a>
 </header>
 
+{# Core plantilla fields including office, status, and legal basis. #}
 <section class="panel">
     <h3>Position Details</h3>
     <dl class="detail-list">
@@ -31,6 +34,7 @@
     </dl>
 </section>
 
+{# History table shows recorded changes for this plantilla item. #}
 <section class="panel" style="margin-top: 20px;">
     <h3>History</h3>
     {% if history %}

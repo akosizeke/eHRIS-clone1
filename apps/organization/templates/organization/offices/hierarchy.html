@@ -1,8 +1,10 @@
 {% extends "organization/base.html" %}
+{# Office hierarchy template rendered by office_hierarchy_index and office_hierarchy. #}
 
 {% block title %}Offices | eHRIS{% endblock %}
 
 {% block content %}
+{# Header provides office search and Add Office entry point. #}
 <header class="page-header">
     <div>
         <h1>Offices</h1>
@@ -23,6 +25,7 @@
 </header>
 
 {% if office %}
+    {# Detail panels show the selected office, related offices, and child offices. #}
     <div class="office-grid">
         <section class="panel">
             <h3>Selected Office</h3>
@@ -75,6 +78,7 @@
         </section>
     </div>
 
+    {# Recursive hierarchy preview for Department > Division > Unit relationships. #}
     <section class="panel">
         <div class="panel-header">
             <h3>Hierarchy</h3>
@@ -101,6 +105,7 @@
         {% endif %}
     </section>
 
+    {# OfficeVersion records connected to the selected office. #}
     <section class="panel section-gap">
         <div class="panel-header">
             <h3>Office Versions</h3>
@@ -136,6 +141,7 @@
         {% endif %}
     </section>
 {% else %}
+    {# Empty state shown when no active offices exist yet. #}
     <section class="panel">
         <div class="empty">No active offices found. Create an office to start the hierarchy.</div>
     </section>

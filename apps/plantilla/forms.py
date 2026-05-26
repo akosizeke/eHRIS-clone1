@@ -3,8 +3,10 @@ from django import forms
 from .models import Item
 
 
+# Form used by the plantilla create view to validate and style item fields.
 class ItemForm(forms.ModelForm):
     class Meta:
+        # Fields map directly to the Item model and its office/legal basis links.
         model = Item
         fields = [
             'item_number',
@@ -17,6 +19,7 @@ class ItemForm(forms.ModelForm):
             'legalbasis',
         ]
 
+    # Adds labels, placeholders, and shared CSS classes for plantilla templates.
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 

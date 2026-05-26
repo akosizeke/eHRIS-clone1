@@ -11,6 +11,8 @@ import os
 
 from django.core.wsgi import get_wsgi_application
 
+# Points WSGI servers to the main Django settings module.
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 
+# WSGI callable used by production web servers.
 application = get_wsgi_application()

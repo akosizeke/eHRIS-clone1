@@ -2,8 +2,10 @@ from django.db import models
 from apps.core.models import AbstractBaseModel
 
 
+# Plantilla position item linked to an office and optional legal basis.
 class Item(AbstractBaseModel):
 
+    # Employment category choices shown in plantilla forms and filters.
     EMPLOYMENT_TYPE_CHOICES = [
         ('permanent', 'Permanent'),
         ('casual',    'Casual'),
@@ -11,12 +13,14 @@ class Item(AbstractBaseModel):
         ('coterminous', 'Job Order/Coterminous'),
     ]
 
+    # Funding source choices stored per plantilla position.
     FUNDING_SOURCE_CHOICES = [
         ('PS',   'PS'),
         ('MOOE', 'MOOE'),
         ('CO',   'CO'),
     ]
 
+    # Current lifecycle status for each plantilla item.
     POSITION_STATUS_CHOICES = [
         ('filled',    'Filled'),
         ('vacant',    'Vacant'),
@@ -34,6 +38,7 @@ class Item(AbstractBaseModel):
     legalbasis      = models.ForeignKey('legal_basis.LegalBasis', on_delete=models.PROTECT, related_name='plantilla_items', null=True, blank=True)
 
     class Meta:
+        # Orders plantilla records by item number for list and admin views.
         ordering = ['item_number']
         verbose_name = 'Plantilla Item'
         verbose_name_plural = 'Plantilla Items'
@@ -42,8 +47,10 @@ class Item(AbstractBaseModel):
         return f"{self.item_number} — {self.position_title}"
 
 
+# Tracks plantilla item changes such as reassignment, status, and salary grade updates.
 class History(AbstractBaseModel):
 
+    # Allowed change categories for plantilla history records.
     CHANGE_TYPE_CHOICES = [
         ('salary_grade', 'Salary Grade Change'),
         ('office',       'Office Reassignment'),
@@ -60,6 +67,7 @@ class History(AbstractBaseModel):
     legalbasis       = models.ForeignKey('legal_basis.LegalBasis', on_delete=models.SET_NULL, null=True, blank=True)
 
     class Meta:
+        # Shows the most recent plantilla history entry first.
         ordering = ['-effective_date']
         verbose_name = 'History'
         verbose_name_plural = 'Histories'

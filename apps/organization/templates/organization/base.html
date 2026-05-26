@@ -1,4 +1,5 @@
 {% load static %}
+{# Shared layout for organization, office, dashboard, and plantilla pages. #}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,8 +10,10 @@
     {% block extra_head %}{% endblock %}
 </head>
 <body>
+    {# Sidebar navigation highlights the active app route. #}
     {% include 'includes/sidebar.html' %}
 
+    {# Child templates render their page-specific content here. #}
     <main class="org-content org-page">
         {% block content %}{% endblock %}
     </main>

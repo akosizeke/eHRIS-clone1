@@ -1,8 +1,10 @@
 {% extends "organization/base.html" %}
+{# Plantilla create template rendered by plantilla_create using ItemForm. #}
 
 {% block title %}Create Plantilla | eHRIS{% endblock %}
 
 {% block content %}
+{# Header links back to the plantilla list workflow. #}
 <header class="page-header">
     <div>
         <h1>Create Plantilla</h1>
@@ -11,6 +13,7 @@
     <a class="button secondary" href="{% url 'plantilla:list' %}">Back to Plantilla</a>
 </header>
 
+{# Form creates a plantilla position under a selected office. #}
 <section class="panel">
     <form method="post">
         {% csrf_token %}

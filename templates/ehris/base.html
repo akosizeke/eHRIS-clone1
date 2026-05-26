@@ -1,3 +1,4 @@
+{# Legacy/shared base layout used by project-level legal_basis and organization templates. #}
 <!doctype html>
 <html lang="en">
 <head>
@@ -5,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}eHRIS{% endblock %}</title>
     <style>
+        /* Base styling for legacy project-level templates. */
         :root {
             --bg: #f4f6f8;
             --panel: #ffffff;
@@ -236,6 +238,7 @@
     </style>
 </head>
 <body>
+    {# Top navigation links the main dashboard and module pages. #}
     <header class="topbar">
         <div class="topbar-inner">
             <a class="brand" href="{% url 'core:dashboard' %}">eHRIS</a>
@@ -247,6 +250,7 @@
             </nav>
         </div>
     </header>
+    {# Child templates render their page content here. #}
     <main class="page">
         {% block content %}{% endblock %}
     </main>

@@ -1,8 +1,10 @@
 {% extends "organization/base.html" %}
+{# Plantilla list template rendered by plantilla_list. #}
 
 {% block title %}Plantilla | eHRIS{% endblock %}
 
 {% block content %}
+{# Header contains filters and the Add Plantilla workflow link. #}
 <header class="page-header">
     <div>
         <h1>Plantilla</h1>
@@ -27,6 +29,7 @@
     </form>
 </header>
 
+{# Table displays plantilla items linked to offices and legal basis records. #}
 <section class="panel">
     {% if items %}
         <div class="table-scroll">

@@ -1,8 +1,10 @@
 {% extends "organization/base.html" %}
+{# Organization management page backed by organization_page and organization API views. #}
 
 {% block title %}Organizations | eHRIS{% endblock %}
 
 {% block content %}
+{# Page heading for the organization registration workflow. #}
 <header class="page-header">
     <div>
         <h1>Organizations</h1>
@@ -13,6 +15,7 @@
 <div id="notice" class="notice hidden" role="status"></div>
 
 <div class="layout">
+    {# Form submits organization data and seal upload to the JSON API. #}
     <section class="panel">
         <h3>Add Organization</h3>
         <form id="organizationForm" enctype="multipart/form-data">
@@ -40,6 +43,7 @@
         </form>
     </section>
 
+    {# Table is populated by JavaScript using the organization API response. #}
     <section class="panel">
         <div class="table-header">
             <h3>Registered Organizations</h3>
@@ -69,6 +73,7 @@
 
 {% block scripts %}
 <script>
+    // API endpoint connected to organization_collection in apps.organization.views.
     const apiUrl = "{% url 'organization:organization_collection' %}";
     const form = document.getElementById('organizationForm');
     const submitButton = document.getElementById('submitButton');

@@ -1,8 +1,10 @@
 {% extends "ehris/base.html" %}
+{# Legal basis list template rendered by legal_basis_list. #}
 
 {% block title %}Legal Basis | eHRIS{% endblock %}
 
 {% block content %}
+{# Header contains the reference-type filter for legal basis records. #}
 <div class="page-header">
     <div>
         <h1>Legal Basis</h1>
@@ -20,6 +22,7 @@
     </form>
 </div>
 
+{# Table displays legal basis records used by office and plantilla workflows. #}
 <section class="panel">
     {% if legal_bases %}
         <table>

@@ -1,8 +1,10 @@
 {% extends "ehris/base.html" %}
+{# Legacy organization list template for active agency/LGU records. #}
 
 {% block title %}Organizations | eHRIS{% endblock %}
 
 {% block content %}
+{# Header links organization records to the office list workflow. #}
 <div class="page-header">
     <div>
         <h1>Organizations</h1>
@@ -11,6 +13,7 @@
     <a class="button" href="{% url 'organization:office_list' %}">View Offices</a>
 </div>
 
+{# Table displays organizations and their office counts. #}
 <section class="panel">
     {% if organizations %}
         <table>

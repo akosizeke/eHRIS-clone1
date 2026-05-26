@@ -1,8 +1,10 @@
 {% extends "ehris/base.html" %}
+{# Legacy office list template for filtering offices by type. #}
 
 {% block title %}Offices | eHRIS{% endblock %}
 
 {% block content %}
+{# Header contains the office type filter. #}
 <div class="page-header">
     <div>
         <h1>Offices</h1>
@@ -20,6 +22,7 @@
     </form>
 </div>
 
+{# Table shows offices with organization, parent, and head fields. #}
 <section class="panel">
     {% if offices %}
         <table>

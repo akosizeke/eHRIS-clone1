@@ -3,8 +3,10 @@
 from .models import Office, OfficeVersion, Organization
 
 
+# Form for organization records used by organization create/edit workflows.
 class OrganizationForm(forms.ModelForm):
     class Meta:
+        # Fields map to the Organization model and organization API payload.
         model = Organization
         fields = [
             'name',
@@ -16,12 +18,14 @@ class OrganizationForm(forms.ModelForm):
         ]
 
 
+# Form for creating offices under an organization hierarchy.
 class OfficeForm(forms.ModelForm):
     organization = forms.ModelChoiceField(queryset=Organization.objects.all(), required=True)
     parent_office = forms.ModelChoiceField(queryset=Office.objects.all(), required=False)
     office_type = forms.ChoiceField(choices=Office.OfficeType.choices, required=True)
 
     class Meta:
+        # Fields map to Office and enforce organization/parent-office links.
         model = Office
         fields = [
             'organization',
@@ -34,6 +38,7 @@ class OfficeForm(forms.ModelForm):
             'is_active',
         ]
 
+    # Limits parent-office choices to the selected organization and adds UI styling.
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -100,6 +105,7 @@ class OfficeForm(forms.ModelForm):
             if field_name in placeholders:
                 self.fields[field_name].widget.attrs['placeholder'] = placeholders[field_name]
 
+    # Validates required organization and parent hierarchy consistency.
     def clean(self):
         cleaned_data = super().clean()
         organization = cleaned_data.get('organization')
@@ -130,8 +136,10 @@ class OfficeForm(forms.ModelForm):
         return cleaned_data
 
 
+# Form for recording office reorganizations or history changes.
 class OfficeVersionForm(forms.ModelForm):
     class Meta:
+        # Fields map to OfficeVersion and connect to LegalBasis records.
         model = OfficeVersion
         fields = [
             'office_id',
@@ -142,6 +150,7 @@ class OfficeVersionForm(forms.ModelForm):
             'change_description',
         ]
 
+    # Optionally locks the office when creating a version from an office detail page.
     def __init__(self, *args, office=None, **kwargs):
         super().__init__(*args, **kwargs)
 

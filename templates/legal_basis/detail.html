@@ -1,8 +1,10 @@
 {% extends "ehris/base.html" %}
+{# Legal basis detail template rendered by legal_basis_detail. #}
 
 {% block title %}{{ legal_basis }} | eHRIS{% endblock %}
 
 {% block content %}
+{# Header identifies the selected legal basis record. #}
 <div class="page-header">
     <div>
         <h1>{{ legal_basis }}</h1>
@@ -11,6 +13,7 @@
     <a class="button secondary" href="{% url 'legal_basis:list' %}">Back to list</a>
 </div>
 
+{# Detail list shows reference dates and uploaded document link. #}
 <section class="panel">
     <dl class="details">
         <dt>Reference Type</dt>

@@ -21,6 +21,7 @@ from .serializers import (
 )
 
 
+# Redirects /organization/ back to the main dashboard route.
 def dashboard(request):
     return redirect('core:dashboard')
 
@@ -29,11 +30,13 @@ def dashboard(request):
 # ORGANIZATION VIEWS
 # =========================================================
 
+# Renders the organization management page connected to organization/organizations.html.
 @require_http_methods(['GET'])
 def organization_page(request):
     return render(request, 'organization/organizations.html')
 
 
+# Parses JSON request bodies for organization API create/update calls.
 def _json_payload(request):
     if not request.body:
         return {}
@@ -44,6 +47,7 @@ def _json_payload(request):
         raise ValidationError({'payload': f'Invalid JSON: {exc.msg}.'})
 
 
+# Saves uploaded organization seal images through Django storage.
 def _save_seal_upload(uploaded_file):
     content_type = getattr(uploaded_file, 'content_type', '')
 
@@ -53,6 +57,7 @@ def _save_seal_upload(uploaded_file):
     return default_storage.save(f'seals/{uploaded_file.name}', uploaded_file)
 
 
+# Reads either multipart form data or JSON payloads for organization APIs.
 def _request_payload(request):
     if request.content_type and request.content_type.startswith('multipart/form-data'):
         data = request.POST.dict()
@@ -65,10 +70,12 @@ def _request_payload(request):
     return _json_payload(request)
 
 
+# Allows organization API callers to include inactive records when requested.
 def _include_inactive(request):
     return request.GET.get('include_inactive', '').lower() in {'1', 'true', 'yes'}
 
 
+# Lists or creates organizations for the organization page and API clients.
 @csrf_exempt
 @require_http_methods(['GET', 'POST'])
 def organization_collection(request):
@@ -116,6 +123,7 @@ def organization_collection(request):
     return JsonResponse(serialize_organization(organization), status=201)
 
 
+# Retrieves, updates, partially updates, or deactivates one organization record.
 @csrf_exempt
 @require_http_methods(['GET', 'PUT', 'PATCH', 'DELETE'])
 def organization_detail(request, organization_id):
@@ -166,6 +174,7 @@ def organization_detail(request, organization_id):
 # OFFICE HELPER FUNCTIONS
 # =========================================================
 
+# Converts one Office model into JSON for hierarchy API responses.
 def _office_to_dict(office):
     return {
         'id': str(office.id),
@@ -180,6 +189,7 @@ def _office_to_dict(office):
     }
 
 
+# Converts a recursive hierarchy node into JSON with children.
 def _node_to_dict(node):
     return {
         **_office_to_dict(node['office']),
@@ -187,6 +197,7 @@ def _node_to_dict(node):
     }
 
 
+# Checks whether an office matches the search query used by office hierarchy pages.
 def _office_matches_query(office, query):
     if not query:
         return True
@@ -202,6 +213,7 @@ def _office_matches_query(office, query):
     return query.lower() in haystack
 
 
+# Keeps matching hierarchy nodes and ancestors when filtering the office tree.
 def _filter_tree(node, query):
     filtered_children = [
         child
@@ -218,6 +230,7 @@ def _filter_tree(node, query):
     return None
 
 
+# Builds the Department > Division > Unit tree for one root office.
 def _build_office_tree(root_office, query=''):
     active_offices = Office.objects.filter(
         organization=root_office.organization,
@@ -259,6 +272,7 @@ def _build_office_tree(root_office, query=''):
     return _filter_tree(tree, query) if query else tree
 
 
+# Builds the Add Office URL and preselects an organization when available.
 def _hierarchy_create_url(organization=None):
     url = reverse('organization:office_create')
 
@@ -268,6 +282,7 @@ def _hierarchy_create_url(organization=None):
     return url
 
 
+# Fetches nearby offices from the same organization for the hierarchy sidebar.
 def _related_offices(organization, selected_office=None):
     if not organization:
         return Office.objects.none()
@@ -283,6 +298,7 @@ def _related_offices(organization, selected_office=None):
     return related[:6]
 
 
+# Fetches version history records for the selected office.
 def _office_versions(office):
     if not office:
         return OfficeVersion.objects.none()
@@ -297,6 +313,7 @@ def _office_versions(office):
     )
 
 
+# Detects whether the request should return JSON instead of an HTML page.
 def _request_wants_json(request):
     return (
         request.headers.get('x-requested-with') == 'XMLHttpRequest'
@@ -305,6 +322,7 @@ def _request_wants_json(request):
     )
 
 
+# Converts Django form errors into a JSON-safe dictionary.
 def _errors_to_json(errors):
     return {
         field: [str(error) for error in field_errors]
@@ -316,6 +334,7 @@ def _errors_to_json(errors):
 # OFFICE VIEWS
 # =========================================================
 
+# Shows the first active organization's office hierarchy and search results.
 def office_hierarchy_index(request):
     query = request.GET.get('q', '').strip()
 
@@ -378,6 +397,7 @@ def office_hierarchy_index(request):
     return render(request, 'organization/offices/hierarchy.html', context)
 
 
+# Shows one selected office, its children, related offices, and version history.
 def office_hierarchy(request, office_id):
     query = request.GET.get('q', '').strip()
 
@@ -414,6 +434,7 @@ def office_hierarchy(request, office_id):
     return render(request, 'organization/offices/hierarchy.html', context)
 
 
+# Handles office creation through the OfficeForm for HTML and JSON callers.
 @require_http_methods(['GET', 'POST'])
 def office_create(request):
     wants_json = _request_wants_json(request)
@@ -486,6 +507,7 @@ def office_create(request):
     })
 
 
+# Shows one office version record connected to an office and legal basis.
 def office_version_detail(request, office_id, version_id):
     office = get_object_or_404(Office, pk=office_id, is_active=True)
     version = get_object_or_404(
@@ -500,6 +522,7 @@ def office_version_detail(request, office_id, version_id):
     })
 
 
+# Creates a version/history record for a selected active office.
 @require_http_methods(['GET', 'POST'])
 def office_version_create(request, office_id):
     office = get_object_or_404(Office, pk=office_id, is_active=True)

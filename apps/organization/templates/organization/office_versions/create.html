@@ -1,8 +1,10 @@
 {% extends "organization/base.html" %}
+{# Office version create template rendered by office_version_create. #}
 
 {% block title %}Create Office Version | eHRIS{% endblock %}
 
 {% block content %}
+{# Header identifies the office receiving a new version record. #}
 <header class="page-header">
     <div>
         <h1>Create Office Version</h1>
@@ -11,6 +13,7 @@
     <a class="button secondary" href="{% url 'organization:office_hierarchy' office.pk %}">Back to Office</a>
 </header>
 
+{# Form records effective dates, legal basis, and change description. #}
 <section class="panel">
     <form method="post">
         {% csrf_token %}

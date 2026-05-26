@@ -16,6 +16,7 @@ ORGANIZATION_FIELDS = (
 )
 
 
+# Converts an Organization model into the JSON shape used by organization APIs.
 def serialize_organization(organization):
     seal_path = organization.seal_path or ''
     return {
@@ -32,6 +33,7 @@ def serialize_organization(organization):
     }
 
 
+# Builds or updates an Organization instance from JSON/form payload data.
 def build_organization(data, organization=None, partial=False):
     if not isinstance(data, dict):
         raise ValidationError({'payload': 'Expected a JSON object.'})
@@ -65,6 +67,7 @@ def build_organization(data, organization=None, partial=False):
     return instance
 
 
+# Normalizes Django ValidationError objects into API error dictionaries.
 def validation_error_to_dict(error):
     if hasattr(error, 'message_dict'):
         return error.message_dict

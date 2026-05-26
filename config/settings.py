@@ -3,8 +3,10 @@ from pathlib import Path
 import environ # for environment variables
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
+# Project root used by templates, static/media paths, and the .env loader.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Loads database, secret key, host, and debug values from config/.env.
 env = environ.Env()
 environ.Env.read_env(BASE_DIR / 'config' / '.env')  # reading config/.env file
 
@@ -24,6 +26,7 @@ ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=[])
 
 # Application definition
 
+# Django contrib apps plus local eHRIS modules connected through config/urls.py.
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -41,6 +44,7 @@ INSTALLED_APPS = [
     
 ]
 
+# Request/response middleware stack used by every dashboard, page, and API route.
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -53,6 +57,7 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'config.urls'
 
+# Template lookup includes the project templates folder and app-level templates.
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -75,6 +80,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
+# PostgreSQL connection for the HRIS schema defined in config/.env.
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
@@ -93,6 +99,7 @@ DATABASES = {
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
 
+# Built-in password validators used by Django authentication/admin.
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -112,6 +119,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
 
+# Locale and timezone settings applied across rendered pages and stored dates.
 LANGUAGE_CODE = 'en-us'
 
 TIME_ZONE = 'UTC'
@@ -124,6 +132,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
+# Base URL for static assets used by templates and app CSS/JS files.
 STATIC_URL = 'static/'
 
 # Default primary key field type
@@ -131,6 +140,7 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# Uploaded media configuration, including organization seal files.
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 

@@ -4,6 +4,7 @@ from apps.legal_basis.models import LegalBasis
 from apps.organization.models import Office, Organization
 
 
+# Main dashboard view that summarizes organization, office, and legal basis records.
 def dashboard(request):
     context = {
         'organization_count': Organization.objects.count(),

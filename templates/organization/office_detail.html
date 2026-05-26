@@ -1,8 +1,10 @@
 {% extends "ehris/base.html" %}
+{# Legacy office detail template for one office record. #}
 
 {% block title %}{{ office.name }} | eHRIS{% endblock %}
 
 {% block content %}
+{# Header identifies the selected office and organization. #}
 <div class="page-header">
     <div>
         <h1>{{ office.name }}</h1>
@@ -11,6 +13,7 @@
     <a class="button secondary" href="{% url 'organization:office_list' %}">Back to offices</a>
 </div>
 
+{# Detail list shows hierarchy, parent, head, and status fields. #}
 <section class="panel">
     <dl class="details">
         <dt>Office Code</dt>

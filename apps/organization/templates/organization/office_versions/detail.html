@@ -1,8 +1,10 @@
 {% extends "organization/base.html" %}
+{# Office version detail template rendered by office_version_detail. #}
 
 {% block title %}{{ version.office_id }} Version {{ version.version_no }} | eHRIS{% endblock %}
 
 {% block content %}
+{# Header links the version back to its office hierarchy page. #}
 <header class="page-header">
     <div>
         <h1>{{ version.office_id }}</h1>
@@ -11,6 +13,7 @@
     <a class="button secondary" href="{% url 'organization:office_hierarchy' office.pk %}">Back to Office</a>
 </header>
 
+{# Detail list displays version dates, legal basis, and change summary. #}
 <section class="panel">
     <h3>Version Details</h3>
     <dl class="detail-list">

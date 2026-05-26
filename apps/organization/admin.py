@@ -3,6 +3,7 @@ from django.contrib import admin
 from .models import Office, OfficeVersion, Organization
 
 
+# Admin screen for maintaining organization master records.
 @admin.register(Organization)
 class OrganizationAdmin(admin.ModelAdmin):
     list_display = ('name', 'short_name', 'province_code', 'is_active', 'modified_at')
@@ -11,6 +12,7 @@ class OrganizationAdmin(admin.ModelAdmin):
     readonly_fields = ('id', 'created_at', 'modified_at')
 
 
+# Admin screen for maintaining offices under each organization.
 @admin.register(Office)
 class OfficeAdmin(admin.ModelAdmin):
     list_display = ('name', 'organization', 'office_type', 'parent_office', 'office_head', 'is_active')
@@ -19,6 +21,7 @@ class OfficeAdmin(admin.ModelAdmin):
     readonly_fields = ('id', 'created_at', 'modified_at')
 
 
+# Admin screen for tracking office version history and legal basis links.
 @admin.register(OfficeVersion)
 class OfficeVersionAdmin(admin.ModelAdmin):
     list_display = ('office_id', 'version_no', 'legal_basis', 'effective_start_date', 'effective_end_date')

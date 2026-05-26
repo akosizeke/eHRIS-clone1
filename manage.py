@@ -4,6 +4,7 @@ import os
 import sys
 
 
+# Entry point for Django management commands such as runserver, migrate, and createsuperuser.
 def main():
     """Run administrative tasks."""
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
