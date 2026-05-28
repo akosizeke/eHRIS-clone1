@@ -1,5 +1,6 @@
 ﻿import json
 from collections import defaultdict
+from pathlib import Path
 
 from django.contrib import messages
 from django.core.exceptions import ValidationError
@@ -11,6 +12,7 @@ from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
+from PIL import Image, UnidentifiedImageError
 
 from .forms import OfficeForm, OfficeVersionForm
 from .models import Office, OfficeVersion, Organization
@@ -19,6 +21,10 @@ from .serializers import (
     serialize_organization,
     validation_error_to_dict,
 )
+
+
+MAX_SEAL_UPLOAD_SIZE = 2 * 1024 * 1024
+ALLOWED_SEAL_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.gif', '.webp'}
 
 
 # Redirects /organization/ back to the main dashboard route.
@@ -50,9 +56,23 @@ def _json_payload(request):
 # Saves uploaded organization seal images through Django storage.
 def _save_seal_upload(uploaded_file):
     content_type = getattr(uploaded_file, 'content_type', '')
+    extension = Path(uploaded_file.name).suffix.lower()
+
+    if extension not in ALLOWED_SEAL_EXTENSIONS:
+        raise ValidationError({'seal_path': 'Seal must be a JPG, PNG, GIF, or WEBP image.'})
+
+    if uploaded_file.size > MAX_SEAL_UPLOAD_SIZE:
+        raise ValidationError({'seal_path': 'Seal image must not exceed 2MB.'})
 
     if content_type and not content_type.startswith('image/'):
         raise ValidationError({'seal_path': 'Seal must be an image file.'})
+
+    try:
+        Image.open(uploaded_file).verify()
+    except (UnidentifiedImageError, OSError):
+        raise ValidationError({'seal_path': 'Seal must be a valid image file.'})
+    finally:
+        uploaded_file.seek(0)
 
     return default_storage.save(f'seals/{uploaded_file.name}', uploaded_file)
 

@@ -1,5 +1,14 @@
 from django.db import models
+from django.core.exceptions import ValidationError
+from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
+from django.db.models.functions import Lower
 from apps.core.models import AbstractBaseModel
+
+
+item_number_validator = RegexValidator(
+    regex=r'^[A-Za-z0-9-]+$',
+    message='Item number may contain letters, numbers, and hyphens only.',
+)
 
 
 # Plantilla position item linked to an office and optional legal basis.
@@ -27,9 +36,9 @@ class Item(AbstractBaseModel):
         ('abolished', 'Abolished'),
     ]
 
-    item_number     = models.CharField(max_length=50, unique=True)
+    item_number     = models.CharField(max_length=50, unique=True, validators=[item_number_validator])
     position_title  = models.CharField(max_length=255)
-    salary_grade    = models.PositiveIntegerField()
+    salary_grade    = models.PositiveIntegerField(validators=[MinValueValidator(1), MaxValueValidator(33)])
     employment_type = models.CharField(max_length=20, choices=EMPLOYMENT_TYPE_CHOICES)
     funding_source  = models.CharField(max_length=10, choices=FUNDING_SOURCE_CHOICES)
     position_status = models.CharField(max_length=20, choices=POSITION_STATUS_CHOICES, default='vacant')
@@ -42,9 +51,51 @@ class Item(AbstractBaseModel):
         ordering = ['item_number']
         verbose_name = 'Plantilla Item'
         verbose_name_plural = 'Plantilla Items'
+        constraints = [
+            models.UniqueConstraint(
+                Lower('position_title'),
+                models.F('office'),
+                name='uniq_plantilla_position_title_per_office_ci',
+            ),
+            models.CheckConstraint(
+                condition=models.Q(salary_grade__gte=1, salary_grade__lte=33),
+                name='plantilla_salary_grade_1_33',
+            ),
+            models.CheckConstraint(
+                condition=models.Q(item_number__regex=r'^[A-Z0-9-]+$'),
+                name='plantilla_item_number_format',
+            ),
+        ]
 
     def __str__(self):
         return f"{self.item_number} — {self.position_title}"
+
+    def clean(self):
+        super().clean()
+        errors = {}
+
+        self.item_number = self.item_number.strip().upper() if self.item_number else self.item_number
+        self.position_title = self.position_title.strip() if self.position_title else self.position_title
+
+        if self.position_title and self.office_id:
+            duplicate_position = Item.objects.filter(
+                office_id=self.office_id,
+                position_title__iexact=self.position_title,
+            )
+            if self.pk:
+                duplicate_position = duplicate_position.exclude(pk=self.pk)
+            if duplicate_position.exists():
+                errors['position_title'] = [
+                    'Position title already exists for this office.'
+                ]
+
+        if errors:
+            raise ValidationError(errors)
+
+    def save(self, *args, **kwargs):
+        self.item_number = self.item_number.strip().upper() if self.item_number else self.item_number
+        self.full_clean()
+        return super().save(*args, **kwargs)
 
 
 # Tracks plantilla item changes such as reassignment, status, and salary grade updates.

@@ -4,6 +4,30 @@ import uuid
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q
+from django.db.models.functions import Lower
+from django.core.validators import RegexValidator
+
+
+organization_name_validator = RegexValidator(
+    regex=r"^[A-Za-z0-9\s.,&()'\-]+$",
+    message='Use only letters, numbers, spaces, and basic punctuation: . , & ( ) \' -.',
+)
+address_validator = RegexValidator(
+    regex=r"^[A-Za-z0-9\s.,#()'\-/]+$",
+    message='Use only letters, numbers, spaces, and basic address punctuation.',
+)
+province_code_validator = RegexValidator(
+    regex=r'^\d{4}$',
+    message='Province code must be exactly 4 digits.',
+)
+office_name_validator = RegexValidator(
+    regex=r"^[A-Za-z0-9\s.,&()'\-]+$",
+    message='Use only letters, numbers, spaces, and basic punctuation: . , & ( ) \' -.',
+)
+office_code_validator = RegexValidator(
+    regex=r'^[A-Z]+$',
+    message='Office code must contain uppercase letters only.',
+)
 
 
 # =========================================================
@@ -18,10 +42,10 @@ from django.db.models import Q
 
 class Organization(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    name = models.CharField(max_length=255)
-    short_name = models.CharField(max_length=100)
-    province_code = models.CharField(max_length=100)
-    address = models.TextField()
+    name = models.CharField(max_length=255, unique=True, validators=[organization_name_validator])
+    short_name = models.CharField(max_length=100, unique=True, validators=[organization_name_validator])
+    province_code = models.CharField(max_length=4, validators=[province_code_validator])
+    address = models.TextField(validators=[address_validator])
     seal_path = models.CharField(max_length=255)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -31,6 +55,12 @@ class Organization(models.Model):
         # Uses the existing organization table and sorts organization lists by name.
         db_table = 'organization'
         ordering = ['name']
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(province_code__regex=r'^\d{4}$'),
+                name='organization_province_code_4_digits',
+            ),
+        ]
 
     # Display name used in admin, forms, and foreign key dropdowns.
     def __str__(self):
@@ -102,8 +132,8 @@ class Office(models.Model):
         related_name='children',
         db_column='parent_office_id',
     )
-    name = models.CharField(max_length=255)
-    office_code = models.CharField(max_length=100, blank=True, default='')
+    name = models.CharField(max_length=255, validators=[office_name_validator])
+    office_code = models.CharField(max_length=100, validators=[office_code_validator])
     office_type = models.CharField(max_length=100, choices=OfficeType.choices)
     level_no = models.PositiveIntegerField(default=1)
     office_head = models.ForeignKey(
@@ -114,7 +144,12 @@ class Office(models.Model):
         related_name='headed_offices',
         db_column='office_head_id',
     )
-    office_head_title = models.CharField(max_length=100, blank=True, default='')
+    office_head_title = models.CharField(
+        max_length=100,
+        choices=OFFICE_HEAD_TITLE_CHOICES,
+        blank=True,
+        default='',
+    )
     is_active = models.BooleanField(default=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -126,9 +161,19 @@ class Office(models.Model):
         ordering = ['level_no', 'name']
         constraints = [
             models.UniqueConstraint(
-                fields=['organization', 'office_code'],
+                Lower('office_code'),
+                models.F('organization'),
                 condition=~Q(office_code=''),
-                name='uniq_office_code_per_org',
+                name='uniq_office_code_per_org_ci',
+            ),
+            models.UniqueConstraint(
+                Lower('name'),
+                models.F('organization'),
+                name='uniq_office_name_per_org_ci',
+            ),
+            models.CheckConstraint(
+                condition=Q(office_code__regex=r'^[A-Z]+$'),
+                name='office_code_uppercase_letters',
             ),
         ]
 
@@ -149,11 +194,23 @@ class Office(models.Model):
     def clean(self):
         super().clean()
         errors = {}
+        self.name = self.name.strip() if self.name else self.name
+        self.office_code = self.office_code.strip() if self.office_code else self.office_code
 
         if self.parent_office_id:
             self._set_level_no_from_parent()
         else:
             self.level_no = 1
+
+        if self.name and self.organization_id:
+            duplicate_name = Office.objects.filter(
+                organization_id=self.organization_id,
+                name__iexact=self.name,
+            )
+            if self.pk:
+                duplicate_name = duplicate_name.exclude(pk=self.pk)
+            if duplicate_name.exists():
+                errors['name'] = ['Office name already exists in this organization.']
 
         if self.parent_office_id and self.pk and self.parent_office_id == self.pk:
             errors['parent_office'] = ['Office cannot be its own parent.']
@@ -271,7 +328,7 @@ class OfficeVersion(models.Model):
         related_name='versions',
         db_column='office_id',
     )
-    version_no = models.IntegerField()
+    version_no = models.PositiveIntegerField()
     effective_start_date = models.DateField()
     effective_end_date = models.DateField(null=True, blank=True)
     legal_basis = models.ForeignKey(
@@ -288,7 +345,57 @@ class OfficeVersion(models.Model):
     class Meta:
         # Stores historical office version records for the organization module.
         db_table = 'organization_office_version'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['office_id', 'version_no'],
+                name='uniq_office_version_no_per_office',
+            ),
+            models.CheckConstraint(
+                condition=Q(version_no__gte=1),
+                name='office_version_no_positive',
+            ),
+            models.CheckConstraint(
+                condition=(
+                    Q(effective_end_date__isnull=True)
+                    | Q(effective_end_date__gt=models.F('effective_start_date'))
+                ),
+                name='office_version_end_after_start',
+            ),
+        ]
 
     # Display label used by admin and office version templates.
     def __str__(self):
         return f"{self.office_id.name} - Version {self.version_no}"
+
+    def clean(self):
+        super().clean()
+        errors = {}
+
+        if self.version_no is not None and self.version_no < 1:
+            errors['version_no'] = ['Version number must be positive.']
+
+        if (
+            self.effective_start_date
+            and self.effective_end_date
+            and self.effective_end_date <= self.effective_start_date
+        ):
+            errors['effective_end_date'] = [
+                'Effective end date must be after the start date.'
+            ]
+
+        if self.office_id_id and self.version_no is not None:
+            duplicate_version = OfficeVersion.objects.filter(
+                office_id_id=self.office_id_id,
+                version_no=self.version_no,
+            )
+            if self.pk:
+                duplicate_version = duplicate_version.exclude(pk=self.pk)
+            if duplicate_version.exists():
+                errors['version_no'] = ['Version number already exists for this office.']
+
+        if errors:
+            raise ValidationError(errors)
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)

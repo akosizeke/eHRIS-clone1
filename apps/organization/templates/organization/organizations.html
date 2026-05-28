@@ -21,19 +21,19 @@
         <form id="organizationForm" enctype="multipart/form-data">
             <label>
                 Full name
-                <input name="name" type="text" required>
+                <input name="name" type="text" maxlength="255" pattern="[A-Za-z0-9\s.,&()'\-]+" required>
             </label>
             <label>
                 Short name
-                <input name="short_name" type="text" required>
+                <input name="short_name" type="text" maxlength="100" pattern="[A-Za-z0-9\s.,&()'\-]+" required>
             </label>
             <label>
                 Province code
-                <input name="province_code" type="text" required>
+                <input name="province_code" type="text" maxlength="4" inputmode="numeric" pattern="\d{4}" required>
             </label>
             <label>
                 Address
-                <textarea name="address" required></textarea>
+                <textarea name="address" maxlength="1000" required></textarea>
             </label>
             <label>
                 Seal photo
@@ -96,6 +96,35 @@
         return Object.entries(payload.errors)
             .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(' ') : value}`)
             .join(' ');
+    }
+
+    function validateOrganizationForm() {
+        const textPattern = /^[A-Za-z0-9\s.,&()'\-]+$/;
+        const addressPattern = /^[A-Za-z0-9\s.,#()'\-/]+$/;
+        const file = form.elements.seal_path.files[0];
+
+        if (!textPattern.test(form.elements.name.value)) {
+            throw new Error('Full name contains unsupported special characters.');
+        }
+        if (!textPattern.test(form.elements.short_name.value)) {
+            throw new Error('Short name contains unsupported special characters.');
+        }
+        if (!/^\d{4}$/.test(form.elements.province_code.value)) {
+            throw new Error('Province code must be exactly 4 digits.');
+        }
+        if (!addressPattern.test(form.elements.address.value)) {
+            throw new Error('Address contains unsupported special characters.');
+        }
+        if (file) {
+            const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+            const extension = file.name.split('.').pop().toLowerCase();
+            if (!allowedExtensions.includes(extension)) {
+                throw new Error('Seal must be a JPG, PNG, GIF, or WEBP image.');
+            }
+            if (file.size > 2 * 1024 * 1024) {
+                throw new Error('Seal image must not exceed 2MB.');
+            }
+        }
     }
 
     async function apiRequest(url, options = {}) {
@@ -166,8 +195,12 @@
                 button.addEventListener('click', () => deactivateOrganization(organization.id, button));
                 action.append(button);
             } else {
-                action.textContent = 'No action';
-                action.className = 'muted';
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'secondary';
+                button.textContent = 'Reactivate';
+                button.addEventListener('click', () => reactivateOrganization(organization.id, button));
+                action.append(button);
             }
 
             tr.append(
@@ -201,6 +234,7 @@
         submitButton.textContent = 'Creating';
 
         try {
+            validateOrganizationForm();
             await apiRequest(apiUrl, {
                 method: 'POST',
                 body: new FormData(form),
@@ -227,6 +261,24 @@
         } catch (error) {
             button.disabled = false;
             button.textContent = 'Deactivate';
+            showNotice(error.message, true);
+        }
+    }
+
+    async function reactivateOrganization(id, button) {
+        button.disabled = true;
+        button.textContent = 'Reactivating';
+
+        try {
+            await apiRequest(`${apiUrl}${id}/`, {
+                method: 'PATCH',
+                body: JSON.stringify({is_active: true}),
+            });
+            showNotice('Organization reactivated.');
+            await loadOrganizations();
+        } catch (error) {
+            button.disabled = false;
+            button.textContent = 'Reactivate';
             showNotice(error.message, true);
         }
     }

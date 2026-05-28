@@ -1,3 +1,5 @@
+import json
+
 from django.http import HttpResponseBadRequest, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -91,7 +93,15 @@ def plantilla_detail(request, pk):
 # Creates a plantilla item through the ItemForm and redirects to its detail page.
 def plantilla_create(request):
     if request.method == 'POST':
-        form = ItemForm(request.POST)
+        if request.content_type == 'application/json':
+            try:
+                data = json.loads(request.body.decode('utf-8') or '{}')
+            except json.JSONDecodeError:
+                data = {}
+        else:
+            data = request.POST
+
+        form = ItemForm(data)
         if form.is_valid():
             item = form.save()
             if _request_wants_json(request):

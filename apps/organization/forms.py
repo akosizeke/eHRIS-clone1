@@ -82,6 +82,10 @@ class OfficeForm(forms.ModelForm):
         self.fields['parent_office'].empty_label = 'Select parent office (optional)'
         self.fields['office_head'].empty_label = 'Select office head (optional)'
         self.fields['office_type'].choices = [('', 'Select office type'), *Office.OfficeType.choices]
+        self.fields['office_head_title'].choices = [
+            ('', 'Select office head title (optional)'),
+            *Office.OFFICE_HEAD_TITLE_CHOICES,
+        ]
         self.fields['is_active'].initial = True
 
         field_classes = {
@@ -97,13 +101,17 @@ class OfficeForm(forms.ModelForm):
         placeholders = {
             'name': 'Enter office, division, or unit name',
             'office_code': 'Example: PITO, PPDO, SDMD',
-            'office_head_title': 'Example: DH, OIC, Unit Head',
         }
 
         for field_name, css_class in field_classes.items():
             self.fields[field_name].widget.attrs['class'] = css_class
             if field_name in placeholders:
                 self.fields[field_name].widget.attrs['placeholder'] = placeholders[field_name]
+
+        self.fields['name'].widget.attrs['maxlength'] = '255'
+        self.fields['name'].widget.attrs['pattern'] = r"[A-Za-z0-9\s.,&()'\-]+"
+        self.fields['office_code'].widget.attrs['maxlength'] = '100'
+        self.fields['office_code'].widget.attrs['pattern'] = '[A-Z]+'
 
     # Validates required organization and parent hierarchy consistency.
     def clean(self):

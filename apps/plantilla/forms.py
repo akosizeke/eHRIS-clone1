@@ -32,3 +32,7 @@ class ItemForm(forms.ModelForm):
         self.fields['item_number'].widget.attrs['placeholder'] = 'Example: HRMO-001'
         self.fields['position_title'].widget.attrs['placeholder'] = 'Example: Administrative Officer IV'
         self.fields['salary_grade'].widget.attrs['min'] = '1'
+        self.fields['salary_grade'].widget.attrs['max'] = '33'
+        self.fields['item_number'].widget.attrs['maxlength'] = '50'
+        self.fields['item_number'].widget.attrs['pattern'] = '[A-Za-z0-9-]+'
+        self.fields['position_title'].widget.attrs['maxlength'] = '255'

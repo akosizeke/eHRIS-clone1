@@ -61,7 +61,28 @@ def build_organization(data, organization=None, partial=False):
 
     for field in ORGANIZATION_FIELDS:
         if field in data:
-            setattr(instance, field, data[field])
+            value = data[field]
+            if field in {'name', 'short_name', 'province_code', 'address', 'seal_path'} and isinstance(value, str):
+                value = value.strip()
+            setattr(instance, field, value)
+
+    duplicate_errors = {}
+    if 'name' in data and instance.name:
+        duplicate_name = Organization.objects.filter(name__iexact=instance.name)
+        if instance.pk:
+            duplicate_name = duplicate_name.exclude(pk=instance.pk)
+        if duplicate_name.exists():
+            duplicate_errors['name'] = ['Organization name already exists.']
+
+    if 'short_name' in data and instance.short_name:
+        duplicate_short_name = Organization.objects.filter(short_name__iexact=instance.short_name)
+        if instance.pk:
+            duplicate_short_name = duplicate_short_name.exclude(pk=instance.pk)
+        if duplicate_short_name.exists():
+            duplicate_errors['short_name'] = ['Organization short name already exists.']
+
+    if duplicate_errors:
+        raise ValidationError(duplicate_errors)
 
     instance.full_clean()
     return instance
