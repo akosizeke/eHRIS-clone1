@@ -3,6 +3,29 @@
 
 {% block title %}{{ item.item_number }} | Plantilla{% endblock %}
 
+{% block extra_head %}
+<style>
+    .plantilla-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 36px;
+        border: 1px solid #111827;
+        border-radius: 0;
+        padding: 7px 10px;
+        background: #fff;
+        color: #111827;
+        font-weight: 700;
+        text-decoration: none;
+    }
+
+    .plantilla-detail-panel {
+        border-radius: 0;
+        box-shadow: none;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 {# Header identifies the selected plantilla item and links back to the list. #}
 <header class="page-header">
@@ -10,15 +33,28 @@
         <h1>{{ item.position_title }}</h1>
         <p class="muted">{{ item.item_number }}</p>
     </div>
-    <a class="button secondary" href="{% url 'plantilla:list' %}">Back to Plantilla</a>
+    <div class="toolbar">
+        <a class="plantilla-button" href="{% url 'plantilla:edit' item.pk %}">Edit</a>
+        <a class="plantilla-button" href="{% url 'plantilla:list' %}?tab=plantilla">Back to Plantilla</a>
+    </div>
 </header>
 
 {# Core plantilla fields including office, status, and legal basis. #}
-<section class="panel">
+<section class="panel plantilla-detail-panel">
     <h3>Position Details</h3>
     <dl class="detail-list">
         <dt>Item Number</dt>
         <dd>{{ item.item_number }}</dd>
+        <dt>Name</dt>
+        <dd>
+            {% if item.position_status == 'vacant' %}
+                <span class="muted">(vacant)</span>
+            {% elif item.position_status == 'abolished' %}
+                <span class="muted">(abolished)</span>
+            {% else %}
+                {{ item.employee_name }}
+            {% endif %}
+        </dd>
         <dt>Position</dt>
         <dd>{{ item.position_title }}</dd>
         <dt>Salary Grade</dt>
@@ -31,11 +67,13 @@
         <dd>{{ item.get_position_status_display }}</dd>
         <dt>Legal Basis</dt>
         <dd>{{ item.legalbasis|default:"-" }}</dd>
+        <dt>Duties & Responsibilities</dt>
+        <dd>{{ item.duties_responsibilities|linebreaksbr|default:"-" }}</dd>
     </dl>
 </section>
 
 {# History table shows recorded changes for this plantilla item. #}
-<section class="panel" style="margin-top: 20px;">
+<section class="panel plantilla-detail-panel" style="margin-top: 20px;">
     <h3>History</h3>
     {% if history %}
         <div class="table-scroll">

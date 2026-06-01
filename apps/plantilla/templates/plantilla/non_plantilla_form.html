@@ -34,21 +34,12 @@
         gap: 6px;
     }
 
-    .plantilla-form .full {
-        grid-column: 1 / -1;
-    }
-
     .plantilla-form input,
-    .plantilla-form select,
-    .plantilla-form textarea {
+    .plantilla-form select {
         border: 1px solid #d1d5db;
         border-radius: 0;
         padding: 8px 10px;
         background: #fff;
-    }
-
-    .plantilla-form textarea {
-        min-height: 120px;
     }
 
     .plantilla-actions {
@@ -85,12 +76,10 @@
     }
 
     @media (max-width: 780px) {
-        .plantilla-form {
-            grid-template-columns: 1fr;
-        }
-
+        .plantilla-form,
         .plantilla-actions {
             display: grid;
+            grid-template-columns: 1fr;
         }
     }
 </style>
@@ -101,29 +90,23 @@
     <header class="page-header">
         <div>
             <h1>{{ title }}</h1>
-            <p class="muted">Permanent plantilla positions only.</p>
+            <p class="muted">Job Order and Casual employees.</p>
         </div>
-        <a class="plantilla-button" href="{% url 'plantilla:list' %}?tab=plantilla">Back to Plantilla</a>
+        <a class="plantilla-button" href="{% url 'plantilla:list' %}?tab=non-plantilla">Back to Non-Plantilla</a>
     </header>
 
     <section class="plantilla-form-panel">
         <form class="plantilla-form" method="post">
             {% csrf_token %}
-            {% for hidden in form.hidden_fields %}
-                {{ hidden }}
-            {% endfor %}
 
             {% if form.non_field_errors %}
-                <div class="plantilla-error full">{{ form.non_field_errors }}</div>
+                <div class="plantilla-error">{{ form.non_field_errors }}</div>
             {% endif %}
 
-            {% for field in form.visible_fields %}
-                <label class="{% if field.name == 'duties_responsibilities' or field.name == 'legalbasis' %}full{% endif %}">
+            {% for field in form %}
+                <label>
                     {{ field.label }}
                     {{ field }}
-                    {% if field.help_text %}
-                        <span class="muted">{{ field.help_text }}</span>
-                    {% endif %}
                     {% for error in field.errors %}
                         <span class="plantilla-error">{{ error }}</span>
                     {% endfor %}
@@ -132,7 +115,7 @@
 
             <div class="plantilla-actions">
                 <button type="submit">{{ submit_label }}</button>
-                <a class="plantilla-button" href="{% url 'plantilla:list' %}?tab=plantilla">Cancel</a>
+                <a class="plantilla-button" href="{% url 'plantilla:list' %}?tab=non-plantilla">Cancel</a>
             </div>
         </form>
     </section>

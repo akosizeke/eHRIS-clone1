@@ -1,4 +1,5 @@
 import json
+from datetime import date
 
 from django.core.exceptions import ValidationError
 from django.test import TestCase
@@ -7,7 +8,7 @@ from django.urls import reverse
 from apps.organization.models import Office, Organization
 
 from .forms import ItemForm
-from .models import Item
+from .models import Item, NonPlantillaEmployee
 
 
 class PlantillaValidationTests(TestCase):
@@ -60,6 +61,12 @@ class PlantillaValidationTests(TestCase):
 
         self.assertFalse(form.is_valid())
         self.assertIn('salary_grade', form.errors)
+
+    def test_filled_position_requires_employee_name(self):
+        form = ItemForm(data={**self.payload, 'position_status': 'filled'})
+
+        self.assertFalse(form.is_valid())
+        self.assertIn('employee_name', form.errors)
 
     def test_position_title_must_be_unique_per_office_case_insensitive(self):
         Item.objects.create(
@@ -115,3 +122,30 @@ class PlantillaValidationTests(TestCase):
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.json()['item_number'], 'HRMO-001')
         self.assertTrue(Item.objects.filter(item_number='HRMO-001').exists())
+
+    def test_non_plantilla_eligibility_uses_duration(self):
+        employee = NonPlantillaEmployee.objects.create(
+            name='Juan Dela Cruz',
+            employee_type='JO',
+            office=self.office,
+            duration_value=2,
+            duration_unit='years',
+            start_date=date(2024, 1, 1),
+        )
+
+        self.assertEqual(employee.service_months, 24)
+        self.assertTrue(employee.eligible_for_permanent)
+
+    def test_non_plantilla_end_date_must_not_precede_start_date(self):
+        employee = NonPlantillaEmployee(
+            name='Maria Santos',
+            employee_type='casual',
+            office=self.office,
+            duration_value=6,
+            duration_unit='months',
+            start_date=date(2026, 2, 1),
+            end_date=date(2026, 1, 31),
+        )
+
+        with self.assertRaises(ValidationError):
+            employee.full_clean()

@@ -10,6 +10,11 @@ urlpatterns = [
     path('', views.plantilla_list, name='list'),
     # Create a new plantilla item linked to an office.
     path('create/', views.plantilla_create, name='create'),
+    # Edit one permanent plantilla position.
+    path('<uuid:pk>/edit/', views.plantilla_update, name='edit'),
+    # Create and edit non-plantilla employees.
+    path('non-plantilla/create/', views.non_plantilla_create, name='non_plantilla_create'),
+    path('non-plantilla/<uuid:pk>/edit/', views.non_plantilla_update, name='non_plantilla_edit'),
     # View one plantilla item and its history.
     path('<uuid:pk>/', views.plantilla_detail, name='detail'),
 ]

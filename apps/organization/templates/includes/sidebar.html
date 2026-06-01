@@ -30,7 +30,7 @@
         </a>
 
         <p class="org-sidebar__section">Organization Records</p>
-        <a class="org-sidebar__link {% if request.resolver_match.url_name == 'organization_page' or request.resolver_match.url_name == 'list' %}is-active{% endif %}" href="{{ organization_page_url }}">
+        <a class="org-sidebar__link {% if request.resolver_match.app_name == 'organization' and request.resolver_match.url_name == 'organization_page' or request.resolver_match.app_name == 'organization' and request.resolver_match.url_name == 'list' %}is-active{% endif %}" href="{{ organization_page_url }}">
             <span class="org-sidebar__icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" focusable="false">
                     <path d="M4 20h16v-2h-1V8.5L12 4 5 8.5V18H4v2Zm3-2v-8.4l5-3.2 5 3.2V18h-2v-5H9v5H7Zm4 0v-3h2v3h-2Z"/>

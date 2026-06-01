@@ -37,11 +37,13 @@ class Item(AbstractBaseModel):
     ]
 
     item_number     = models.CharField(max_length=50, unique=True, validators=[item_number_validator])
+    employee_name   = models.CharField(max_length=255, blank=True, default='')
     position_title  = models.CharField(max_length=255)
     salary_grade    = models.PositiveIntegerField(validators=[MinValueValidator(1), MaxValueValidator(33)])
     employment_type = models.CharField(max_length=20, choices=EMPLOYMENT_TYPE_CHOICES)
     funding_source  = models.CharField(max_length=10, choices=FUNDING_SOURCE_CHOICES)
     position_status = models.CharField(max_length=20, choices=POSITION_STATUS_CHOICES, default='vacant')
+    duties_responsibilities = models.TextField(blank=True, default='')
 
     office          = models.ForeignKey('organization.Office',    on_delete=models.PROTECT, related_name='plantilla_items')
     legalbasis      = models.ForeignKey('legal_basis.LegalBasis', on_delete=models.PROTECT, related_name='plantilla_items', null=True, blank=True)
@@ -75,7 +77,16 @@ class Item(AbstractBaseModel):
         errors = {}
 
         self.item_number = self.item_number.strip().upper() if self.item_number else self.item_number
+        self.employee_name = self.employee_name.strip() if self.employee_name else ''
         self.position_title = self.position_title.strip() if self.position_title else self.position_title
+        self.duties_responsibilities = (
+            self.duties_responsibilities.strip()
+            if self.duties_responsibilities
+            else ''
+        )
+
+        if self.position_status in {'vacant', 'abolished'}:
+            self.employee_name = ''
 
         if self.position_title and self.office_id:
             duplicate_position = Item.objects.filter(
@@ -94,6 +105,73 @@ class Item(AbstractBaseModel):
 
     def save(self, *args, **kwargs):
         self.item_number = self.item_number.strip().upper() if self.item_number else self.item_number
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+
+# Non-plantilla employees such as Job Order and Casual personnel.
+class NonPlantillaEmployee(AbstractBaseModel):
+
+    EMPLOYEE_TYPE_CHOICES = [
+        ('JO', 'Job Order'),
+        ('casual', 'Casual'),
+    ]
+
+    DURATION_UNIT_CHOICES = [
+        ('months', 'Months'),
+        ('years', 'Years'),
+    ]
+
+    name           = models.CharField(max_length=255)
+    employee_type  = models.CharField(max_length=20, choices=EMPLOYEE_TYPE_CHOICES)
+    office         = models.ForeignKey('organization.Office', on_delete=models.PROTECT, related_name='non_plantilla_employees')
+    duration_value = models.PositiveIntegerField(validators=[MinValueValidator(1)])
+    duration_unit  = models.CharField(max_length=10, choices=DURATION_UNIT_CHOICES, default='months')
+    start_date     = models.DateField()
+    end_date       = models.DateField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['name']
+        verbose_name = 'Non-Plantilla Employee'
+        verbose_name_plural = 'Non-Plantilla Employees'
+        indexes = [
+            models.Index(fields=['employee_type']),
+            models.Index(fields=['office']),
+        ]
+
+    def __str__(self):
+        return f"{self.name} - {self.get_employee_type_display()}"
+
+    @property
+    def duration_display(self):
+        unit = 'month' if self.duration_value == 1 and self.duration_unit == 'months' else self.duration_unit
+        if self.duration_value == 1 and self.duration_unit == 'years':
+            unit = 'year'
+        return f'{self.duration_value} {unit}'
+
+    @property
+    def service_months(self):
+        if self.duration_unit == 'years':
+            return self.duration_value * 12
+        return self.duration_value
+
+    @property
+    def eligible_for_permanent(self):
+        return self.service_months >= 24
+
+    def clean(self):
+        super().clean()
+        errors = {}
+
+        self.name = self.name.strip() if self.name else self.name
+
+        if self.end_date and self.start_date and self.end_date < self.start_date:
+            errors['end_date'] = ['End date cannot be earlier than start date.']
+
+        if errors:
+            raise ValidationError(errors)
+
+    def save(self, *args, **kwargs):
         self.full_clean()
         return super().save(*args, **kwargs)
 
