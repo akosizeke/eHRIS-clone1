@@ -5,6 +5,7 @@
 
 {% block extra_head %}
 <style>
+    /* Styles plantilla detail links as square bordered action buttons. */
     .plantilla-button {
         display: inline-flex;
         align-items: center;
@@ -19,6 +20,7 @@
         text-decoration: none;
     }
 
+    /* Removes rounded corners and shadows so detail panels match the plantilla list style. */
     .plantilla-detail-panel {
         border-radius: 0;
         box-shadow: none;
@@ -33,6 +35,7 @@
         <h1>{{ item.position_title }}</h1>
         <p class="muted">{{ item.item_number }}</p>
     </div>
+    {# Toolbar provides edit and return actions for the current plantilla item. #}
     <div class="toolbar">
         <a class="plantilla-button" href="{% url 'plantilla:edit' item.pk %}">Edit</a>
         <a class="plantilla-button" href="{% url 'plantilla:list' %}?tab=plantilla">Back to Plantilla</a>
@@ -47,6 +50,7 @@
         <dd>{{ item.item_number }}</dd>
         <dt>Name</dt>
         <dd>
+            {# Name field displays occupancy status when no employee name should be shown. #}
             {% if item.position_status == 'vacant' %}
                 <span class="muted">(vacant)</span>
             {% elif item.position_status == 'abolished' %}
@@ -76,6 +80,7 @@
 <section class="panel plantilla-detail-panel" style="margin-top: 20px;">
     <h3>History</h3>
     {% if history %}
+        {# Table lists historical plantilla changes tied to this position record. #}
         <div class="table-scroll">
             <table>
                 <thead>
@@ -103,6 +108,7 @@
             </table>
         </div>
     {% else %}
+        {# Empty state explains that the selected position has no recorded changes yet. #}
         <div class="empty">No history records yet.</div>
     {% endif %}
 </section>

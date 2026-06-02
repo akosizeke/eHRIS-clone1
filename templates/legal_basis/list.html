@@ -10,6 +10,7 @@
         <h1>Legal Basis</h1>
         <div class="muted">Filtered list with validated type query parameter.</div>
     </div>
+    {# Filter form limits legal basis rows by reference type. #}
     <form class="toolbar" method="get">
         <select name="type" aria-label="Reference type">
             <option value="">All types</option>
@@ -25,6 +26,7 @@
 {# Table displays legal basis records used by office and plantilla workflows. #}
 <section class="panel">
     {% if legal_bases %}
+        {# Legal basis table renders each matching reference with dates and document status. #}
         <table>
             <thead>
                 <tr>
@@ -41,6 +43,7 @@
                         <td>{{ legal_basis.approval_date|default:"-" }}</td>
                         <td>{{ legal_basis.effectivity_date }}</td>
                         <td>
+                            {# Document cell links to the uploaded file or shows that no file exists. #}
                             {% if legal_basis.document_path %}
                                 <a href="{{ legal_basis.document_path.url }}">Open file</a>
                             {% else %}
@@ -52,6 +55,7 @@
             </tbody>
         </table>
     {% else %}
+        {# Empty state appears when no legal basis records match the active filter. #}
         <div class="empty">No legal basis records found.</div>
     {% endif %}
 </section>

@@ -34,6 +34,7 @@
         <h2>Recent Legal Bases</h2>
     </div>
     {% if recent_legal_bases %}
+        {# Recent records table links to legal basis detail pages and shows effectivity dates. #}
         <div class="table-scroll">
             <table>
                 <thead>
@@ -53,6 +54,7 @@
             </table>
         </div>
     {% else %}
+        {# Empty state appears when no legal basis records exist for the dashboard summary. #}
         <div class="empty">No legal basis records yet.</div>
     {% endif %}
 </section>

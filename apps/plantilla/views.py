@@ -183,6 +183,7 @@ def plantilla_create(request):
         data = _request_data(request)
         data = data.copy()
         data['employment_type'] = 'permanent'
+        data['funding_source'] = 'PS'
 
         form = ItemForm(data)
         if form.is_valid():
@@ -199,7 +200,7 @@ def plantilla_create(request):
                 }
             }, status=400)
     else:
-        form = ItemForm(initial={'employment_type': 'permanent'})
+        form = ItemForm(initial={'employment_type': 'permanent', 'funding_source': 'PS'})
 
     _prepare_permanent_form(form)
 
@@ -217,6 +218,7 @@ def plantilla_update(request, pk):
         data = _request_data(request)
         data = data.copy()
         data['employment_type'] = 'permanent'
+        data['funding_source'] = item.funding_source
         form = ItemForm(data, instance=item)
         if form.is_valid():
             form.save()
@@ -319,6 +321,7 @@ def _office_rows(offices, office_search, permanent_items):
 
 def _prepare_permanent_form(form):
     form.fields['employment_type'].widget = form.fields['employment_type'].hidden_widget()
+    form.fields['funding_source'].widget = form.fields['funding_source'].hidden_widget()
 
 
 def _request_data(request):

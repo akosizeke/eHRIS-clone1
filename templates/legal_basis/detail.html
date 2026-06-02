@@ -26,9 +26,11 @@
         <dd>{{ legal_basis.effectivity_date }}</dd>
         <dt>Document</dt>
         <dd>
+            {# Document detail links to the uploaded legal basis file when available. #}
             {% if legal_basis.document_path %}
                 <a href="{{ legal_basis.document_path.url }}">Open file</a>
             {% else %}
+                {# Fallback text explains that this legal basis has no uploaded file. #}
                 <span class="muted">No file uploaded</span>
             {% endif %}
         </dd>

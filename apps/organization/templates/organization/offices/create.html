@@ -16,15 +16,19 @@
 {# Form creates Department, Division, or Unit records under an organization. #}
 <section class="panel">
     <form method="post">
+        {# CSRF token protects the office create request from cross-site submissions. #}
         {% csrf_token %}
         {% if next_url %}
+            {# Hidden next value returns the user to the originating hierarchy page after save. #}
             <input type="hidden" name="next" value="{{ next_url }}">
         {% endif %}
 
         {% if form.non_field_errors %}
+            {# Non-field errors show office validation problems not tied to a single input. #}
             <div class="notice error">{{ form.non_field_errors }}</div>
         {% endif %}
 
+        {# Field loop renders each OfficeForm control with help text and per-field errors. #}
         {% for field in form %}
             <label>
                 {{ field.label }}
@@ -38,6 +42,7 @@
             </label>
         {% endfor %}
 
+        {# Toolbar submits the new office or cancels back to the hierarchy page. #}
         <div class="toolbar">
             <button type="submit">Create Office</button>
             <a class="button secondary" href="{{ hierarchy_url }}">Cancel</a>

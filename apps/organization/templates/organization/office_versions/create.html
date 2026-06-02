@@ -16,12 +16,15 @@
 {# Form records effective dates, legal basis, and change description. #}
 <section class="panel">
     <form method="post">
+        {# CSRF token protects the office version create request from cross-site submissions. #}
         {% csrf_token %}
 
         {% if form.non_field_errors %}
+            {# Non-field errors show version validation problems not tied to a single input. #}
             <div class="notice error">{{ form.non_field_errors }}</div>
         {% endif %}
 
+        {# Field loop renders each OfficeVersion form control with help text and field errors. #}
         {% for field in form %}
             <label>
                 {{ field.label }}
@@ -35,6 +38,7 @@
             </label>
         {% endfor %}
 
+        {# Toolbar submits the version record or cancels back to the selected office. #}
         <div class="toolbar">
             <button type="submit">Create Office Version</button>
             <a class="button secondary" href="{% url 'organization:office_hierarchy' office.pk %}">Cancel</a>

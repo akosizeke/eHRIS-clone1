@@ -16,6 +16,7 @@
             {% endif %}
         </p>
     </div>
+    {# Search toolbar filters offices and exposes the create-office action. #}
     <form class="toolbar" method="get">
         <input name="q" type="search" value="{{ query }}" placeholder="Search offices">
         <button type="submit">Search</button>
@@ -27,6 +28,7 @@
 {% if office %}
     {# Detail panels show the selected office, related offices, and child offices. #}
     <div class="office-grid">
+        {# Selected office panel summarizes the current office's core attributes. #}
         <section class="panel">
             <h3>Selected Office</h3>
             <dl class="detail-list">
@@ -45,9 +47,11 @@
             </dl>
         </section>
 
+        {# Related offices panel links to peer or connected offices for quick navigation. #}
         <section class="panel">
             <h3>Related Offices</h3>
             {% if related_offices %}
+                {# Related office cards navigate to another office hierarchy view. #}
                 <div class="office-tree">
                     {% for related in related_offices %}
                         <a class="summary-card" href="{% url 'organization:office_hierarchy' related.pk %}">
@@ -57,13 +61,16 @@
                     {% endfor %}
                 </div>
             {% else %}
+                {# Empty state appears when no related offices are available for the selection. #}
                 <div class="empty">No related offices found.</div>
             {% endif %}
         </section>
 
+        {# Children panel lists offices directly below the selected office in the hierarchy. #}
         <section class="panel">
             <h3>Children</h3>
             {% if child_offices %}
+                {# Child office cards navigate deeper into the hierarchy. #}
                 <div class="office-tree">
                     {% for child in child_offices %}
                         <a class="summary-card" href="{% url 'organization:office_hierarchy' child.office.pk %}">
@@ -73,6 +80,7 @@
                     {% endfor %}
                 </div>
             {% else %}
+                {# Empty state appears when the selected office has no child offices. #}
                 <div class="empty">No child offices found.</div>
             {% endif %}
         </section>
@@ -84,6 +92,7 @@
             <h3>Hierarchy</h3>
         </div>
         {% if hierarchy %}
+            {# Hierarchy tree displays the selected office and its nested child offices. #}
             <div class="office-tree">
                 <div class="office-node">
                     <div class="name">{{ hierarchy.office.name }}</div>
@@ -101,6 +110,7 @@
                 </div>
             </div>
         {% else %}
+            {# Empty state appears when the hierarchy data cannot be built for the selection. #}
             <div class="empty">No hierarchy available.</div>
         {% endif %}
     </section>
@@ -112,6 +122,7 @@
             <a class="button" href="{{ create_office_version_url }}">Add Version</a>
         </div>
         {% if office_versions %}
+            {# Office version table lists effective date history and legal basis references. #}
             <div class="table-scroll">
                 <table>
                     <thead>
@@ -137,6 +148,7 @@
                 </table>
             </div>
         {% else %}
+            {# Empty state appears when no version records exist for the selected office. #}
             <div class="empty">No version history recorded for this office.</div>
         {% endif %}
     </section>

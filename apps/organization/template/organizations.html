@@ -6,36 +6,43 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Organizations</title>
     <style>
+        /* Sets text color and font for the legacy standalone organization page. */
         .org-page {
             color: #172b4d;
             font-family: Arial, Helvetica, sans-serif;
         }
 
+        /* Adds spacing below the page heading block. */
         .page-header {
             margin-bottom: 20px;
         }
 
+        /* Removes default top margins so headings and paragraphs align inside panels. */
         h2,
         h3,
         p {
             margin-top: 0;
         }
 
+        /* Sizes the main page heading. */
         h2 {
             margin-bottom: 6px;
             font-size: 28px;
         }
 
+        /* Sizes panel headings inside the organization form and table. */
         h3 {
             margin-bottom: 14px;
             font-size: 18px;
         }
 
+        /* Applies muted color to helper paragraphs and metadata. */
         p,
         .muted {
             color: #60789e;
         }
 
+        /* Creates a two-column form-and-table layout for organization management. */
         .layout {
             display: grid;
             grid-template-columns: 340px 1fr;
@@ -43,6 +50,7 @@
             align-items: start;
         }
 
+        /* Frames form and table areas with a white bordered panel. */
         .panel {
             padding: 18px;
             border: 1px solid #d8e5f6;
@@ -50,11 +58,13 @@
             background: #fff;
         }
 
+        /* Stacks form fields with consistent spacing. */
         form {
             display: grid;
             gap: 12px;
         }
 
+        /* Places each field label above its input and styles the label text. */
         label {
             display: grid;
             gap: 6px;
@@ -63,6 +73,7 @@
             font-weight: 700;
         }
 
+        /* Normalizes rounded corners and font inheritance for form controls. */
         input,
         textarea,
         button {
@@ -70,6 +81,7 @@
             font: inherit;
         }
 
+        /* Gives text inputs and text areas full width, padding, and borders. */
         input,
         textarea {
             width: 100%;
@@ -78,11 +90,13 @@
             box-sizing: border-box;
         }
 
+        /* Gives address text areas enough height and allows vertical resizing. */
         textarea {
             min-height: 80px;
             resize: vertical;
         }
 
+        /* Styles the primary submit button for organization creation. */
         button {
             min-height: 38px;
             padding: 8px 12px;
@@ -93,16 +107,19 @@
             cursor: pointer;
         }
 
+        /* Provides a muted secondary button style for row actions. */
         button.secondary {
             background: #edf2f7;
             color: #344766;
         }
 
+        /* Shows disabled button state during async organization actions. */
         button:disabled {
             cursor: not-allowed;
             opacity: 0.65;
         }
 
+        /* Styles feedback notices shown after create or deactivate requests. */
         .notice {
             margin-bottom: 16px;
             padding: 12px;
@@ -113,28 +130,33 @@
             font-weight: 700;
         }
 
+        /* Styles failed request or validation notices in red. */
         .notice.error {
             border-color: #fecaca;
             background: #fef2f2;
             color: #991b1b;
         }
 
+        /* Aligns the table title with the dynamic organization count. */
         .table-header {
             display: flex;
             justify-content: space-between;
             gap: 12px;
         }
 
+        /* Lets the organization table scroll horizontally when it is wider than the panel. */
         .table-scroll {
             overflow-x: auto;
         }
 
+        /* Sets the organization table width and collapsed border model. */
         table {
             width: 100%;
             min-width: 720px;
             border-collapse: collapse;
         }
 
+        /* Defines table cell spacing and row separators. */
         th,
         td {
             padding: 12px;
@@ -143,16 +165,19 @@
             vertical-align: top;
         }
 
+        /* Styles table headers as muted uppercase labels. */
         th {
             color: #60789e;
             font-size: 12px;
             text-transform: uppercase;
         }
 
+        /* Emphasizes organization names inside generated table rows. */
         .name {
             font-weight: 700;
         }
 
+        /* Displays active organization state as a compact green badge. */
         .status {
             display: inline-block;
             padding: 3px 8px;
@@ -163,21 +188,25 @@
             font-weight: 700;
         }
 
+        /* Displays inactive organization state as a muted badge. */
         .status.inactive {
             background: #f1f5f9;
             color: #64748b;
         }
 
+        /* Sizes uploaded seal images displayed in organization table rows. */
         .seal-image {
             width: 48px;
             height: 48px;
             object-fit: contain;
         }
 
+        /* Hides notices and empty states until JavaScript makes them relevant. */
         .hidden {
             display: none;
         }
 
+        /* Stacks the form and table on narrower screens. */
         @media (max-width: 1000px) {
             .layout {
                 grid-template-columns: 1fr;
@@ -186,17 +215,23 @@
     </style>
 </head>
 <body>
+    {# Legacy sidebar supplies navigation for the standalone organization page. #}
     {% include 'includes/sidebar.html' %}
 
+    {# Main content contains organization registration and the dynamic organization table. #}
     <main class="org-content org-page">
+        {# Header explains that this page registers city or agency organization records. #}
         <header class="page-header">
             <h2>Organizations</h2>
             <p>Register each city or agency as its own organization record.</p>
         </header>
 
+        {# Notice area is shown by JavaScript for success and error messages. #}
         <div id="notice" class="notice hidden" role="status"></div>
 
+        {# Two-column layout places the create form beside the registered organization table. #}
         <div class="layout">
+            {# Form panel collects organization profile fields and the seal image upload. #}
             <section class="panel">
                 <h3>Add Organization</h3>
                 <form id="organizationForm" enctype="multipart/form-data">
@@ -224,12 +259,15 @@
                 </form>
             </section>
 
+            {# Table panel displays organizations loaded from the organization API. #}
             <section class="panel">
+                {# Table header shows the section title and JavaScript-filled record count. #}
                 <div class="table-header">
                     <h3>Registered Organizations</h3>
                     <span id="organizationCount" class="muted">Loading</span>
                 </div>
 
+                {# Scroll wrapper prevents the generated table from overflowing on small screens. #}
                 <div class="table-scroll">
                     <table>
                         <thead>
@@ -246,6 +284,7 @@
                     </table>
                 </div>
 
+                {# Empty message is shown when the API returns no registered organizations. #}
                 <p id="emptyMessage" class="muted hidden">No organizations have been registered yet.</p>
             </section>
         </div>

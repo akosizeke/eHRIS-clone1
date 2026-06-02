@@ -16,6 +16,7 @@
 {# Table displays organizations and their office counts. #}
 <section class="panel">
     {% if organizations %}
+        {# Organization table renders each active agency or LGU with status and office count. #}
         <table>
             <thead>
                 <tr>
@@ -39,6 +40,7 @@
             </tbody>
         </table>
     {% else %}
+        {# Empty state appears when there are no organization records to display. #}
         <div class="empty">No organizations yet.</div>
     {% endif %}
 </section>

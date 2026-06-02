@@ -4,20 +4,24 @@
 
 {% block extra_head %}
 <style>
+    /* Sets the base text color for the plantilla listing page. */
     .plantilla-page {
         color: #1f2937;
     }
 
+    /* Aligns the page heading with actions and separates it from tab navigation. */
     .plantilla-page .page-header {
         align-items: flex-end;
         border-bottom: 1px solid #d1d5db;
         padding-bottom: 16px;
     }
 
+    /* Adds compact spacing below the plantilla page title. */
     .plantilla-page h1 {
         margin-bottom: 4px;
     }
 
+    /* Displays the main plantilla tabs in a horizontal row with a bottom divider. */
     .plantilla-tabs {
         display: flex;
         gap: 24px;
@@ -25,6 +29,7 @@
         border-bottom: 1px solid #d1d5db;
     }
 
+    /* Styles each tab link and reserves an underline for the active tab state. */
     .plantilla-tab {
         padding: 10px 0;
         color: #6b7280;
@@ -33,11 +38,13 @@
         font-weight: 700;
     }
 
+    /* Highlights the active tab so users know which dataset is currently displayed. */
     .plantilla-tab.is-active {
         color: #111827;
         border-bottom-color: #111827;
     }
 
+    /* Frames each tab's content area as a plain bordered white panel. */
     .plantilla-panel {
         background: #fff;
         border: 1px solid #d1d5db;
@@ -46,6 +53,7 @@
         padding: 0;
     }
 
+    /* Lays out search filters and add/reset actions across the top of each panel. */
     .plantilla-toolbar {
         display: flex;
         flex-wrap: wrap;
@@ -56,6 +64,7 @@
         border-bottom: 1px solid #d1d5db;
     }
 
+    /* Groups filter inputs together so search controls wrap cleanly. */
     .plantilla-filters {
         display: flex;
         flex-wrap: wrap;
@@ -63,6 +72,7 @@
         align-items: center;
     }
 
+    /* Normalizes filter inputs and selects with square borders for the plantilla module. */
     .plantilla-page input,
     .plantilla-page select {
         width: auto;
@@ -74,6 +84,7 @@
         background: #fff;
     }
 
+    /* Styles reusable plantilla links and buttons as compact bordered controls. */
     .plantilla-button,
     .plantilla-page button {
         display: inline-flex;
@@ -90,17 +101,20 @@
         cursor: pointer;
     }
 
+    /* Makes primary add buttons stand out from secondary table and filter actions. */
     .plantilla-button.primary {
         background: #111827;
         color: #fff;
     }
 
+    /* Sets the plantilla data tables to a wide, collapsed layout for record scanning. */
     .plantilla-table {
         width: 100%;
         min-width: 900px;
         border-collapse: collapse;
     }
 
+    /* Defines table cell spacing and separators for plantilla records. */
     .plantilla-table th,
     .plantilla-table td {
         padding: 11px 14px;
@@ -110,20 +124,24 @@
         vertical-align: middle;
     }
 
+    /* Styles table headers as muted uppercase labels. */
     .plantilla-table th {
         color: #6b7280;
         font-size: 12px;
         text-transform: uppercase;
     }
 
+    /* Removes the final row border so table bottoms align cleanly with the panel. */
     .plantilla-table tr:last-child td {
         border-bottom: 0;
     }
 
+    /* Applies muted color to secondary plantilla metadata such as codes and item numbers. */
     .plantilla-muted {
         color: #6b7280;
     }
 
+    /* Styles the office expand/collapse control inside the offices table. */
     .plantilla-toggle {
         width: 24px;
         border: 0;
@@ -133,20 +151,24 @@
         font-weight: 700;
     }
 
+    /* Hides nested position rows until an office row is expanded. */
     .plantilla-positions-row {
         display: none;
     }
 
+    /* Reveals nested position rows when the toggle script marks them open. */
     .plantilla-positions-row.is-open {
         display: table-row;
     }
 
+    /* Stacks expanded position summaries inside an office row. */
     .plantilla-position-list {
         display: grid;
         gap: 8px;
         padding: 8px 0;
     }
 
+    /* Lays out one expanded position summary with title on the left and status on the right. */
     .plantilla-position-item {
         display: flex;
         flex-wrap: wrap;
@@ -157,10 +179,12 @@
         padding: 8px 0;
     }
 
+    /* Removes the divider after the final expanded position summary. */
     .plantilla-position-item:last-child {
         border-bottom: 0;
     }
 
+    /* Styles statuses, employment types, and eligibility markers as compact badges. */
     .badge {
         display: inline-flex;
         align-items: center;
@@ -172,33 +196,40 @@
         font-weight: 700;
     }
 
+    /* Colors filled positions and eligible non-plantilla employees green. */
     .status-filled,
     .eligible-yes {
         color: #15803d;
     }
 
+    /* Colors vacant positions and non-eligible employees amber for attention. */
     .status-vacant,
     .eligible-no {
         color: #b45309;
     }
 
+    /* Colors abolished positions red to signal inactive plantilla items. */
     .status-abolished {
         color: #b91c1c;
     }
 
+    /* Colors job order employee type badges blue. */
     .type-JO {
         color: #1d4ed8;
     }
 
+    /* Colors casual employee type badges purple. */
     .type-casual {
         color: #7e22ce;
     }
 
+    /* Styles empty table states with padded muted text. */
     .plantilla-empty {
         padding: 18px 14px;
         color: #6b7280;
     }
 
+    /* Stacks headers, filters, and controls on narrow screens so they do not overflow. */
     @media (max-width: 900px) {
         .plantilla-page .page-header,
         .plantilla-toolbar {
@@ -218,13 +249,15 @@
 
 {% block content %}
 <div class="plantilla-page">
+    {# Page header names the plantilla module and describes the three managed record groups. #}
     <header class="page-header">
         <div>
-            <h1>Plantilla Management System</h1>
+            <h1>Plantilla</h1>
             <p class="muted">Offices, permanent plantilla positions, and non-plantilla employees.</p>
         </div>
     </header>
 
+    {# Tabs switch between office summaries, permanent plantilla positions, and non-plantilla employees. #}
     <nav class="plantilla-tabs" aria-label="Plantilla tabs">
         <a class="plantilla-tab {% if active_tab == 'offices' %}is-active{% endif %}" href="{% url 'plantilla:list' %}?tab=offices">Offices</a>
         <a class="plantilla-tab {% if active_tab == 'plantilla' %}is-active{% endif %}" href="{% url 'plantilla:list' %}?tab=plantilla">Plantilla (Permanent)</a>
@@ -232,7 +265,9 @@
     </nav>
 
     {% if active_tab == 'offices' %}
+        {# Offices tab shows each office with aggregate plantilla position counts. #}
         <section class="plantilla-panel">
+            {# Office search form filters the office summary rows by entered text. #}
             <form class="plantilla-toolbar" method="get">
                 <input type="hidden" name="tab" value="offices">
                 <div class="plantilla-filters">
@@ -242,6 +277,7 @@
                 </div>
             </form>
 
+            {# Office table lists counts and expandable permanent position summaries per office. #}
             <div class="table-scroll">
                 <table class="plantilla-table">
                     <thead>
@@ -259,6 +295,7 @@
                         {% for row in office_rows %}
                             <tr>
                                 <td>
+                                    {# Toggle button opens the hidden row containing this office's positions. #}
                                     <button class="plantilla-toggle" type="button" data-target="office-{{ row.office.pk }}" aria-label="Toggle {{ row.office.name }}">&#9654;</button>
                                 </td>
                                 <td>
@@ -273,10 +310,12 @@
                                     <a class="plantilla-button" href="{% url 'plantilla:list' %}?tab=plantilla&office={{ row.office.pk }}">View Plantilla</a>
                                 </td>
                             </tr>
+                            {# Hidden detail row contains permanent positions assigned to the office. #}
                             <tr id="office-{{ row.office.pk }}" class="plantilla-positions-row">
                                 <td></td>
                                 <td colspan="6">
                                     {% if row.positions %}
+                                        {# Expanded list shows each position title, salary grade, item number, and status. #}
                                         <div class="plantilla-position-list">
                                             {% for item in row.positions %}
                                                 <div class="plantilla-position-item">
@@ -289,11 +328,13 @@
                                             {% endfor %}
                                         </div>
                                     {% else %}
+                                        {# Empty state explains that the expanded office has no permanent positions. #}
                                         <div class="plantilla-empty">No permanent plantilla positions in this office.</div>
                                     {% endif %}
                                 </td>
                             </tr>
                         {% empty %}
+                            {# Empty state appears when office search returns no matching offices. #}
                             <tr>
                                 <td colspan="7" class="plantilla-empty">No offices found.</td>
                             </tr>
@@ -303,7 +344,9 @@
             </div>
         </section>
     {% elif active_tab == 'plantilla' %}
+        {# Permanent plantilla tab lists all permanent position items with filters. #}
         <section class="plantilla-panel">
+            {# Toolbar combines position filters with the add-position action. #}
             <div class="plantilla-toolbar">
                 <form class="plantilla-filters" method="get">
                     <input type="hidden" name="tab" value="plantilla">
@@ -332,6 +375,7 @@
                 <a class="plantilla-button primary" href="{% url 'plantilla:create' %}">+ Add Position</a>
             </div>
 
+            {# Permanent position table shows employee assignment, office, grade, status, and actions. #}
             <div class="table-scroll">
                 <table class="plantilla-table">
                     <thead>
@@ -349,6 +393,7 @@
                         {% for item in items %}
                             <tr>
                                 <td>
+                                    {# Name cell shows vacant or abolished text when no active employee should be displayed. #}
                                     {% if item.position_status == 'vacant' %}
                                         <span class="plantilla-muted">(vacant)</span>
                                     {% elif item.position_status == 'abolished' %}
@@ -365,6 +410,7 @@
                                 <td><a class="plantilla-button" href="{% url 'plantilla:edit' item.pk %}">Edit</a></td>
                             </tr>
                         {% empty %}
+                            {# Empty state appears when no permanent plantilla rows match the filters. #}
                             <tr>
                                 <td colspan="7" class="plantilla-empty">No permanent plantilla positions found.</td>
                             </tr>
@@ -374,7 +420,9 @@
             </div>
         </section>
     {% else %}
+        {# Non-plantilla tab lists job order and casual employees with filters. #}
         <section class="plantilla-panel">
+            {# Toolbar combines non-plantilla filters with the add-employee action. #}
             <div class="plantilla-toolbar">
                 <form class="plantilla-filters" method="get">
                     <input type="hidden" name="tab" value="non-plantilla">
@@ -397,6 +445,7 @@
                 <a class="plantilla-button primary" href="{% url 'plantilla:non_plantilla_create' %}">+ Add Non-Plantilla</a>
             </div>
 
+            {# Non-plantilla table shows employee type, office, duration, dates, eligibility, and edit action. #}
             <div class="table-scroll">
                 <table class="plantilla-table">
                     <thead>
@@ -421,6 +470,7 @@
                                 <td>{{ employee.start_date }}</td>
                                 <td>{{ employee.end_date|default:"-" }}</td>
                                 <td>
+                                    {# Eligibility badge flags whether the employee can be considered for permanent placement. #}
                                     {% if employee.eligible_for_permanent %}
                                         <span class="badge eligible-yes">Yes</span>
                                     {% else %}
@@ -430,6 +480,7 @@
                                 <td><a class="plantilla-button" href="{% url 'plantilla:non_plantilla_edit' employee.pk %}">Edit</a></td>
                             </tr>
                         {% empty %}
+                            {# Empty state appears when no non-plantilla rows match the filters. #}
                             <tr>
                                 <td colspan="8" class="plantilla-empty">No non-plantilla employees found.</td>
                             </tr>

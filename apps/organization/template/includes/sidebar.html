@@ -3,11 +3,13 @@
 {% url 'organization:organization_page' as organization_page_url %}
 
 <style>
+    /* Removes default body spacing and sets the font for the legacy standalone layout. */
     body {
         margin: 0;
         font-family: Arial, Helvetica, sans-serif;
     }
 
+    /* Pins the legacy sidebar to the left side of the viewport. */
     .org-sidebar {
         position: fixed;
         top: 0;
@@ -22,6 +24,7 @@
         box-shadow: 8px 0 24px rgba(37, 99, 235, 0.08);
     }
 
+    /* Aligns the seal and title in the sidebar brand area. */
     .org-sidebar__brand {
         display: flex;
         align-items: center;
@@ -30,6 +33,7 @@
         border-bottom: 1px solid #d8e5f6;
     }
 
+    /* Centers seal and link icons inside their fixed icon containers. */
     .org-sidebar__seal,
     .org-sidebar__icon {
         display: inline-flex;
@@ -38,6 +42,7 @@
         flex: 0 0 auto;
     }
 
+    /* Styles the square seal icon used as the legacy sidebar brand mark. */
     .org-sidebar__seal {
         width: 44px;
         height: 44px;
@@ -47,12 +52,14 @@
         box-shadow: 0 8px 18px rgba(37, 99, 235, 0.24);
     }
 
+    /* Gives every inline SVG in the sidebar the same icon dimensions. */
     .org-sidebar svg {
         width: 22px;
         height: 22px;
         fill: currentColor;
     }
 
+    /* Formats the small eHRIS label above the sidebar heading. */
     .org-sidebar__eyebrow {
         margin: 0 0 3px;
         color: #60789e;
@@ -61,12 +68,14 @@
         text-transform: uppercase;
     }
 
+    /* Sizes the sidebar heading for the current module name. */
     .org-sidebar h1 {
         margin: 0;
         font-size: 20px;
         line-height: 1.2;
     }
 
+    /* Stacks navigation links vertically in the sidebar. */
     .org-sidebar__nav {
         display: flex;
         flex-direction: column;
@@ -74,6 +83,7 @@
         margin-top: 28px;
     }
 
+    /* Styles section labels that group related sidebar links. */
     .org-sidebar__section {
         margin: 16px 10px 6px;
         color: #7b8fac;
@@ -82,6 +92,7 @@
         text-transform: uppercase;
     }
 
+    /* Styles one sidebar navigation link as a full-width row. */
     .org-sidebar__link {
         display: flex;
         align-items: center;
@@ -96,6 +107,7 @@
         box-sizing: border-box;
     }
 
+    /* Highlights a sidebar link when hovered or focused. */
     .org-sidebar__link:hover,
     .org-sidebar__link:focus {
         background: #eaf2ff;
@@ -103,22 +115,26 @@
         outline: none;
     }
 
+    /* Marks the current legacy navigation link as active. */
     .org-sidebar__link.is-active {
         background: #2563eb;
         color: #ffffff;
         box-shadow: 0 10px 22px rgba(37, 99, 235, 0.22);
     }
 
+    /* Reserves consistent space for each sidebar link icon. */
     .org-sidebar__icon {
         width: 22px;
         height: 22px;
     }
 
+    /* Offsets legacy page content so it does not sit under the fixed sidebar. */
     .org-content {
         margin-left: 280px;
         padding: 24px;
     }
 
+    /* Stacks the sidebar above content on small screens. */
     @media (max-width: 800px) {
         .org-sidebar {
             position: static;
@@ -132,7 +148,9 @@
     }
 </style>
 
+{# Legacy sidebar provides navigation for the older standalone organization templates. #}
 <aside class="org-sidebar" aria-label="Organization sidebar">
+    {# Brand block identifies the eHRIS organization module. #}
     <div class="org-sidebar__brand">
         <div class="org-sidebar__seal" aria-hidden="true">
             <svg viewBox="0 0 24 24" role="img" focusable="false">
@@ -145,6 +163,7 @@
         </div>
     </div>
 
+    {# Navigation links point to dashboard, organization records, and in-page office sections. #}
     <nav class="org-sidebar__nav">
         <p class="org-sidebar__section">Dashboard</p>
         <a class="org-sidebar__link {% if request.resolver_match.url_name == 'dashboard' %}is-active{% endif %}" href="{{ dashboard_url }}">

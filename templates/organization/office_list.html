@@ -10,6 +10,7 @@
         <h1>Offices</h1>
         <div class="muted">Office list with validated type query parameter.</div>
     </div>
+    {# Filter form limits office rows by the selected office type. #}
     <form class="toolbar" method="get">
         <select name="type" aria-label="Office type">
             <option value="">All types</option>
@@ -25,6 +26,7 @@
 {# Table shows offices with organization, parent, and head fields. #}
 <section class="panel">
     {% if offices %}
+        {# Office table renders each matching office with organization, hierarchy, and head fields. #}
         <table>
             <thead>
                 <tr>
@@ -48,6 +50,7 @@
             </tbody>
         </table>
     {% else %}
+        {# Empty state appears when no offices match the active type filter. #}
         <div class="empty">No offices found.</div>
     {% endif %}
 </section>

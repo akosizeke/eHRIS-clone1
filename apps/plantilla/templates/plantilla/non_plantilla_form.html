@@ -4,16 +4,19 @@
 
 {% block extra_head %}
 <style>
+    /* Sets the color for the non-plantilla form page so it matches the plantilla module. */
     .plantilla-form-page {
         color: #1f2937;
     }
 
+    /* Aligns the form page header and separates it from the form panel below. */
     .plantilla-form-page .page-header {
         align-items: flex-end;
         border-bottom: 1px solid #d1d5db;
         padding-bottom: 16px;
     }
 
+    /* Frames the non-plantilla form in a plain bordered panel for focused data entry. */
     .plantilla-form-panel {
         margin-top: 18px;
         padding: 18px;
@@ -23,17 +26,20 @@
         box-shadow: none;
     }
 
+    /* Lays out non-plantilla fields in two columns on desktop. */
     .plantilla-form {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 14px;
     }
 
+    /* Stacks each field label above its input and validation text. */
     .plantilla-form label {
         display: grid;
         gap: 6px;
     }
 
+    /* Normalizes text and select inputs with square borders matching the module style. */
     .plantilla-form input,
     .plantilla-form select {
         border: 1px solid #d1d5db;
@@ -42,6 +48,7 @@
         background: #fff;
     }
 
+    /* Places submit and cancel actions on one row below the form fields. */
     .plantilla-actions {
         display: flex;
         gap: 8px;
@@ -49,6 +56,7 @@
         margin-top: 8px;
     }
 
+    /* Styles reusable plantilla links and form buttons as bordered action controls. */
     .plantilla-button,
     .plantilla-form button {
         display: inline-flex;
@@ -65,16 +73,19 @@
         cursor: pointer;
     }
 
+    /* Makes the submit button visually primary for the create/edit action. */
     .plantilla-form button {
         background: #111827;
         color: #fff;
     }
 
+    /* Displays validation errors in red near the relevant form field. */
     .plantilla-error {
         color: #b91c1c;
         font-size: 13px;
     }
 
+    /* Stacks the form and actions on narrow screens so inputs remain readable. */
     @media (max-width: 780px) {
         .plantilla-form,
         .plantilla-actions {
@@ -87,6 +98,7 @@
 
 {% block content %}
 <div class="plantilla-form-page">
+    {# Header names the create/edit action and provides a return link to the non-plantilla tab. #}
     <header class="page-header">
         <div>
             <h1>{{ title }}</h1>
@@ -95,14 +107,17 @@
         <a class="plantilla-button" href="{% url 'plantilla:list' %}?tab=non-plantilla">Back to Non-Plantilla</a>
     </header>
 
+    {# Form panel collects job order or casual employee details for creation or update. #}
     <section class="plantilla-form-panel">
         <form class="plantilla-form" method="post">
             {% csrf_token %}
 
+            {# Non-field errors show validation problems that apply to the full form. #}
             {% if form.non_field_errors %}
                 <div class="plantilla-error">{{ form.non_field_errors }}</div>
             {% endif %}
 
+            {# Form fields render labels, inputs, and field-specific validation errors. #}
             {% for field in form %}
                 <label>
                     {{ field.label }}
@@ -113,6 +128,7 @@
                 </label>
             {% endfor %}
 
+            {# Action row submits the form or cancels back to the non-plantilla tab. #}
             <div class="plantilla-actions">
                 <button type="submit">{{ submit_label }}</button>
                 <a class="plantilla-button" href="{% url 'plantilla:list' %}?tab=non-plantilla">Cancel</a>

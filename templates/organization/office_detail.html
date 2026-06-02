@@ -27,6 +27,7 @@
         <dt>Office Head</dt>
         <dd>{{ office.office_head|default:"-" }}</dd>
         <dt>Status</dt>
+        {# Status field shows whether the office is active in the hierarchy. #}
         <dd>{% if office.is_active %}Active{% else %}Inactive{% endif %}</dd>
     </dl>
 </section>

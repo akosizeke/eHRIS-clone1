@@ -1,4 +1,5 @@
 /* Shared layout styles for organization, office, dashboard, and plantilla templates. */
+/* Sets the global page canvas and typography so all module pages share the same visual baseline. */
 body {
     margin: 0;
     background: #f4f7fb;
@@ -6,6 +7,7 @@ body {
     font-family: Arial, Helvetica, sans-serif;
 }
 
+/* Pins the module sidebar to the left so navigation stays visible across organization pages. */
 .org-sidebar {
     position: fixed;
     top: 0;
@@ -20,6 +22,7 @@ body {
     box-shadow: 8px 0 24px rgba(37, 99, 235, 0.08);
 }
 
+/* Aligns the sidebar seal and title as the branded header for the navigation rail. */
 .org-sidebar__brand {
     display: flex;
     align-items: center;
@@ -28,6 +31,7 @@ body {
     border-bottom: 1px solid #d8e5f6;
 }
 
+/* Centers icon containers so the seal and navigation icons line up consistently. */
 .org-sidebar__seal,
 .org-sidebar__icon {
     display: inline-flex;
@@ -36,6 +40,7 @@ body {
     flex: 0 0 auto;
 }
 
+/* Styles the square seal mark used as the sidebar's primary visual identifier. */
 .org-sidebar__seal {
     width: 44px;
     height: 44px;
@@ -45,12 +50,14 @@ body {
     box-shadow: 0 8px 18px rgba(37, 99, 235, 0.24);
 }
 
+/* Normalizes inline SVG dimensions so every sidebar icon has the same size. */
 .org-sidebar svg {
     width: 22px;
     height: 22px;
     fill: currentColor;
 }
 
+/* Styles the small eHRIS label above the sidebar title for module context. */
 .org-sidebar__eyebrow {
     margin: 0 0 3px;
     color: #60789e;
@@ -59,12 +66,14 @@ body {
     text-transform: uppercase;
 }
 
+/* Sizes the sidebar title so the active module name is prominent but compact. */
 .org-sidebar h1 {
     margin: 0;
     font-size: 20px;
     line-height: 1.2;
 }
 
+/* Stacks sidebar links vertically for the main module navigation. */
 .org-sidebar__nav {
     display: flex;
     flex-direction: column;
@@ -72,6 +81,7 @@ body {
     margin-top: 28px;
 }
 
+/* Formats sidebar section labels to separate dashboard and record groups. */
 .org-sidebar__section {
     margin: 16px 10px 6px;
     color: #7b8fac;
@@ -80,6 +90,7 @@ body {
     text-transform: uppercase;
 }
 
+/* Styles each sidebar navigation link as a full-width clickable row. */
 .org-sidebar__link {
     display: flex;
     align-items: center;
@@ -94,6 +105,7 @@ body {
     box-sizing: border-box;
 }
 
+/* Highlights hovered and focused sidebar links so keyboard and mouse users can track selection. */
 .org-sidebar__link:hover,
 .org-sidebar__link:focus {
     background: #eaf2ff;
@@ -101,26 +113,31 @@ body {
     outline: none;
 }
 
+/* Marks the current sidebar link with the primary color so users know which module is active. */
 .org-sidebar__link.is-active {
     background: #2563eb;
     color: #fff;
     box-shadow: 0 10px 22px rgba(37, 99, 235, 0.22);
 }
 
+/* Reserves a fixed icon slot inside each sidebar link for consistent label alignment. */
 .org-sidebar__icon {
     width: 22px;
     height: 22px;
 }
 
+/* Offsets main content to the right of the fixed sidebar and adds page padding. */
 .org-content {
     margin-left: 280px;
     padding: 24px;
 }
 
+/* Applies the main text color to organization pages rendered inside the shared layout. */
 .org-page {
     color: #172b4d;
 }
 
+/* Removes default top margins from common text elements to keep panels aligned. */
 .org-page h1,
 .org-page h2,
 .org-page h3,
@@ -128,6 +145,7 @@ body {
     margin-top: 0;
 }
 
+/* Lays out page titles and their actions on one row for desktop screens. */
 .page-header {
     display: flex;
     justify-content: space-between;
@@ -135,6 +153,7 @@ body {
     margin-bottom: 20px;
 }
 
+/* Sizes page headings consistently across dashboard, office, and plantilla pages. */
 .page-header h1,
 .page-header h2 {
     margin-bottom: 6px;
@@ -142,15 +161,18 @@ body {
     line-height: 1.2;
 }
 
+/* Styles third-level headings used inside panels and cards. */
 .org-page h3 {
     margin-bottom: 14px;
     font-size: 18px;
 }
 
+/* Applies subdued text color for secondary descriptions and metadata. */
 .muted {
     color: #60789e;
 }
 
+/* Creates the two-column form-and-table layout used by management pages. */
 .layout {
     display: grid;
     grid-template-columns: 340px 1fr;
@@ -158,6 +180,7 @@ body {
     align-items: start;
 }
 
+/* Builds responsive card grids for dashboard metrics and office summary panels. */
 .dashboard-grid,
 .office-grid {
     display: grid;
@@ -166,6 +189,7 @@ body {
     margin-bottom: 20px;
 }
 
+/* Gives panels and summary cards a shared bordered white surface. */
 .panel,
 .summary-card {
     padding: 18px;
@@ -174,6 +198,7 @@ body {
     background: #fff;
 }
 
+/* Makes summary cards behave like compact clickable metric blocks. */
 .summary-card {
     display: grid;
     gap: 10px;
@@ -181,6 +206,7 @@ body {
     text-decoration: none;
 }
 
+/* Adds hover and focus affordance to linked summary cards. */
 .summary-card:hover,
 .summary-card:focus {
     border-color: #9fc2f5;
@@ -188,6 +214,7 @@ body {
     outline: none;
 }
 
+/* Emphasizes numeric dashboard values inside metric cards. */
 .metric {
     color: #172b4d;
     font-size: 34px;
@@ -195,6 +222,7 @@ body {
     line-height: 1;
 }
 
+/* Aligns panel and table headings with their actions or counters. */
 .panel-header,
 .table-header {
     display: flex;
@@ -202,20 +230,24 @@ body {
     gap: 12px;
 }
 
+/* Adds vertical spacing between stacked panels. */
 .section-gap {
     margin-top: 20px;
 }
 
+/* Allows wide tables to scroll horizontally on smaller screens. */
 .table-scroll {
     overflow-x: auto;
 }
 
+/* Gives data tables a full-width, collapsed-border layout with a minimum readable width. */
 table {
     width: 100%;
     min-width: 720px;
     border-collapse: collapse;
 }
 
+/* Defines table cell spacing and separators for readable record lists. */
 th,
 td {
     padding: 12px;
@@ -224,17 +256,20 @@ td {
     vertical-align: top;
 }
 
+/* Styles table headers as compact uppercase labels. */
 th {
     color: #60789e;
     font-size: 12px;
     text-transform: uppercase;
 }
 
+/* Stacks form controls with consistent spacing for data-entry screens. */
 form {
     display: grid;
     gap: 12px;
 }
 
+/* Formats labels so field captions sit above their inputs. */
 label {
     display: grid;
     gap: 6px;
@@ -243,6 +278,7 @@ label {
     font-weight: 700;
 }
 
+/* Rounds and normalizes typography for controls and button-like links. */
 input,
 select,
 textarea,
@@ -252,6 +288,7 @@ button,
     font: inherit;
 }
 
+/* Gives text inputs, selects, and text areas consistent width, padding, and borders. */
 input,
 select,
 textarea {
@@ -261,11 +298,13 @@ textarea {
     box-sizing: border-box;
 }
 
+/* Gives text areas a useful starting height and lets users resize vertically. */
 textarea {
     min-height: 80px;
     resize: vertical;
 }
 
+/* Styles primary buttons and button-like anchors as centered action controls. */
 button,
 .button {
     display: inline-flex;
@@ -281,17 +320,20 @@ button,
     cursor: pointer;
 }
 
+/* Provides a lower-emphasis button style for cancel and secondary actions. */
 button.secondary,
 .button.secondary {
     background: #edf2f7;
     color: #344766;
 }
 
+/* Visually disables buttons while async actions or submissions are in progress. */
 button:disabled {
     cursor: not-allowed;
     opacity: 0.65;
 }
 
+/* Lays out filters and action buttons in a wrapping horizontal toolbar. */
 .toolbar {
     display: flex;
     flex-wrap: wrap;
@@ -299,11 +341,13 @@ button:disabled {
     gap: 10px;
 }
 
+/* Keeps toolbar select boxes compact instead of full-width on desktop. */
 .toolbar select {
     width: auto;
     min-width: 180px;
 }
 
+/* Styles status notices for successful actions or neutral feedback. */
 .notice {
     margin-bottom: 16px;
     padding: 12px;
@@ -314,16 +358,19 @@ button:disabled {
     font-weight: 700;
 }
 
+/* Styles error notices with red colors for validation or request failures. */
 .notice.error {
     border-color: #fecaca;
     background: #fef2f2;
     color: #991b1b;
 }
 
+/* Emphasizes names inside table rows, cards, and hierarchy nodes. */
 .name {
     font-weight: 700;
 }
 
+/* Displays active status as a compact green badge. */
 .status {
     display: inline-block;
     padding: 3px 8px;
@@ -334,17 +381,20 @@ button:disabled {
     font-weight: 700;
 }
 
+/* Displays inactive status as a muted badge. */
 .status.inactive {
     background: #f1f5f9;
     color: #64748b;
 }
 
+/* Sizes uploaded organization seal images in table rows. */
 .seal-image {
     width: 48px;
     height: 48px;
     object-fit: contain;
 }
 
+/* Styles empty states so missing data is visible without looking like a normal panel. */
 .empty {
     padding: 18px;
     border: 1px dashed #c8d8ee;
@@ -353,6 +403,7 @@ button:disabled {
     background: #f8fbff;
 }
 
+/* Creates a two-column definition list for detail pages. */
 .detail-list {
     display: grid;
     grid-template-columns: max-content 1fr;
@@ -360,20 +411,24 @@ button:disabled {
     margin: 0;
 }
 
+/* Styles definition terms as muted field labels. */
 .detail-list dt {
     color: #60789e;
     font-weight: 700;
 }
 
+/* Removes default margins from definition values so rows align with labels. */
 .detail-list dd {
     margin: 0;
 }
 
+/* Stacks office hierarchy nodes with consistent vertical spacing. */
 .office-tree {
     display: grid;
     gap: 12px;
 }
 
+/* Styles one office node in a hierarchy preview. */
 .office-node {
     padding: 14px;
     border: 1px solid #d8e5f6;
@@ -381,6 +436,7 @@ button:disabled {
     background: #f8fbff;
 }
 
+/* Indents child office nodes and draws the hierarchy connector line. */
 .office-node__children {
     display: grid;
     gap: 10px;
@@ -389,10 +445,12 @@ button:disabled {
     border-left: 2px solid #d8e5f6;
 }
 
+/* Hides elements that JavaScript or conditional UI should reveal later. */
 .hidden {
     display: none;
 }
 
+/* Collapses multi-column grids on medium screens so cards and panels stack vertically. */
 @media (max-width: 1000px) {
     .layout,
     .dashboard-grid,
@@ -401,6 +459,7 @@ button:disabled {
     }
 }
 
+/* Converts the fixed sidebar and page header into mobile-friendly stacked layouts. */
 @media (max-width: 800px) {
     .org-sidebar {
         position: static;

@@ -4,16 +4,19 @@
 
 {% block extra_head %}
 <style>
+    /* Sets the color for the plantilla create/edit page so the form matches the module palette. */
     .plantilla-form-page {
         color: #1f2937;
     }
 
+    /* Aligns the form page header and separates it from the form panel below. */
     .plantilla-form-page .page-header {
         align-items: flex-end;
         border-bottom: 1px solid #d1d5db;
         padding-bottom: 16px;
     }
 
+    /* Frames the plantilla form in a plain bordered panel for focused data entry. */
     .plantilla-form-panel {
         margin-top: 18px;
         padding: 18px;
@@ -23,21 +26,25 @@
         box-shadow: none;
     }
 
+    /* Lays out plantilla fields in two columns so related fields fit on one screen. */
     .plantilla-form {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 14px;
     }
 
+    /* Stacks each field label above its input and validation text. */
     .plantilla-form label {
         display: grid;
         gap: 6px;
     }
 
+    /* Lets long fields span the full form width for easier reading and editing. */
     .plantilla-form .full {
         grid-column: 1 / -1;
     }
 
+    /* Normalizes form controls with square borders that match the plantilla table style. */
     .plantilla-form input,
     .plantilla-form select,
     .plantilla-form textarea {
@@ -47,10 +54,12 @@
         background: #fff;
     }
 
+    /* Gives duties and responsibility text enough initial height for multi-line content. */
     .plantilla-form textarea {
         min-height: 120px;
     }
 
+    /* Places submit and cancel actions on one row below the form fields. */
     .plantilla-actions {
         display: flex;
         gap: 8px;
@@ -58,6 +67,7 @@
         margin-top: 8px;
     }
 
+    /* Styles reusable plantilla links and form buttons as bordered action controls. */
     .plantilla-button,
     .plantilla-form button {
         display: inline-flex;
@@ -74,16 +84,19 @@
         cursor: pointer;
     }
 
+    /* Makes the submit button visually primary for the create/edit action. */
     .plantilla-form button {
         background: #111827;
         color: #fff;
     }
 
+    /* Displays validation errors in red near the relevant form field. */
     .plantilla-error {
         color: #b91c1c;
         font-size: 13px;
     }
 
+    /* Stacks the form and actions on narrow screens so inputs remain readable. */
     @media (max-width: 780px) {
         .plantilla-form {
             grid-template-columns: 1fr;
@@ -98,6 +111,7 @@
 
 {% block content %}
 <div class="plantilla-form-page">
+    {# Header names the create/edit action and provides a return link to the plantilla list. #}
     <header class="page-header">
         <div>
             <h1>{{ title }}</h1>
@@ -106,17 +120,21 @@
         <a class="plantilla-button" href="{% url 'plantilla:list' %}?tab=plantilla">Back to Plantilla</a>
     </header>
 
+    {# Form panel collects permanent plantilla position details for creation or update. #}
     <section class="plantilla-form-panel">
         <form class="plantilla-form" method="post">
             {% csrf_token %}
+            {# Hidden fields preserve form metadata required by Django form handling. #}
             {% for hidden in form.hidden_fields %}
                 {{ hidden }}
             {% endfor %}
 
+            {# Non-field errors show validation problems that apply to the full form. #}
             {% if form.non_field_errors %}
                 <div class="plantilla-error full">{{ form.non_field_errors }}</div>
             {% endif %}
 
+            {# Visible fields render labels, inputs, help text, and field-specific errors. #}
             {% for field in form.visible_fields %}
                 <label class="{% if field.name == 'duties_responsibilities' or field.name == 'legalbasis' %}full{% endif %}">
                     {{ field.label }}
@@ -130,6 +148,7 @@
                 </label>
             {% endfor %}
 
+            {# Action row submits the form or cancels back to the plantilla tab. #}
             <div class="plantilla-actions">
                 <button type="submit">{{ submit_label }}</button>
                 <a class="plantilla-button" href="{% url 'plantilla:list' %}?tab=plantilla">Cancel</a>

@@ -20,6 +20,7 @@
 
     <nav class="org-sidebar__nav">
         <p class="org-sidebar__section">Dashboard</p>
+        {# Dashboard link returns users to the overall eHRIS record summary. #}
         <a class="org-sidebar__link {% if request.resolver_match.app_name == 'core' and request.resolver_match.url_name == 'dashboard' %}is-active{% endif %}" href="{{ dashboard_url }}">
             <span class="org-sidebar__icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" focusable="false">
@@ -30,6 +31,7 @@
         </a>
 
         <p class="org-sidebar__section">Organization Records</p>
+        {# Organizations link opens the organization registration and management page. #}
         <a class="org-sidebar__link {% if request.resolver_match.app_name == 'organization' and request.resolver_match.url_name == 'organization_page' or request.resolver_match.app_name == 'organization' and request.resolver_match.url_name == 'list' %}is-active{% endif %}" href="{{ organization_page_url }}">
             <span class="org-sidebar__icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" focusable="false">
@@ -38,6 +40,7 @@
             </span>
             Organizations
         </a>
+        {# Offices link opens the office hierarchy and version records workflow. #}
         <a class="org-sidebar__link {% if request.resolver_match.url_name == 'office_list' or request.resolver_match.url_name == 'office_hierarchy_index' or request.resolver_match.url_name == 'office_hierarchy' or request.resolver_match.url_name == 'office_detail' or request.resolver_match.url_name == 'office_create' or request.resolver_match.url_name == 'office_version_create_for_office' or request.resolver_match.url_name == 'office_version_detail' %}is-active{% endif %}" href="{{ office_list_url }}">
             <span class="org-sidebar__icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" focusable="false">
@@ -46,6 +49,7 @@
             </span>
             Offices
         </a>
+        {# Plantilla link opens the position and non-plantilla employee management tabs. #}
         <a class="org-sidebar__link {% if request.resolver_match.app_name == 'plantilla' %}is-active{% endif %}" href="{{ plantilla_list_url }}">
             <span class="org-sidebar__icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" focusable="false">

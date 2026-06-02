@@ -12,6 +12,7 @@
     </div>
 </header>
 
+{# Notice area is updated by JavaScript to show organization create/deactivate/reactivate results. #}
 <div id="notice" class="notice hidden" role="status"></div>
 
 <div class="layout">
@@ -19,37 +20,45 @@
     <section class="panel">
         <h3>Add Organization</h3>
         <form id="organizationForm" enctype="multipart/form-data">
+            {# Name field stores the full legal organization or agency name. #}
             <label>
                 Full name
                 <input name="name" type="text" maxlength="255" pattern="[A-Za-z0-9\s.,&()'\-]+" required>
             </label>
+            {# Short name field stores the abbreviation used in compact displays. #}
             <label>
                 Short name
                 <input name="short_name" type="text" maxlength="100" pattern="[A-Za-z0-9\s.,&()'\-]+" required>
             </label>
+            {# Province code field captures the four-digit geographic code for the organization. #}
             <label>
                 Province code
                 <input name="province_code" type="text" maxlength="4" inputmode="numeric" pattern="\d{4}" required>
             </label>
+            {# Address field stores the organization's office or mailing address. #}
             <label>
                 Address
                 <textarea name="address" maxlength="1000" required></textarea>
             </label>
+            {# Seal upload stores an image used to visually identify the organization. #}
             <label>
                 Seal photo
                 <input name="seal_path" type="file" accept="image/*" required>
             </label>
+            {# Submit button starts the JavaScript-backed create organization request. #}
             <button id="submitButton" type="submit">Create Organization</button>
         </form>
     </section>
 
     {# Table is populated by JavaScript using the organization API response. #}
     <section class="panel">
+        {# Header pairs the table title with the JavaScript-filled organization count. #}
         <div class="table-header">
             <h3>Registered Organizations</h3>
             <span id="organizationCount" class="muted">Loading</span>
         </div>
 
+        {# Scroll wrapper keeps the dynamic organization table usable on narrow screens. #}
         <div class="table-scroll">
             <table>
                 <thead>
@@ -62,10 +71,12 @@
                         <th>Action</th>
                     </tr>
                 </thead>
+                {# Body is empty in the template because JavaScript renders organization rows. #}
                 <tbody id="organizationRows"></tbody>
             </table>
         </div>
 
+        {# Empty message appears when the API returns no organization records. #}
         <p id="emptyMessage" class="muted hidden">No organizations have been registered yet.</p>
     </section>
 </div>
