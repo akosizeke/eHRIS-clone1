@@ -156,4 +156,39 @@
         </form>
     </section>
 </div>
+<script>
+    const salaryGradeSelect = document.getElementById('id_salary_grade');
+    const salaryStepSelect = document.getElementById('id_salary_step');
+
+    if (salaryGradeSelect && salaryStepSelect) {
+        const salarySteps = JSON.parse(salaryStepSelect.dataset.steps || '{}');
+
+        function setSalaryStepOptions(preserveSelection) {
+            const gradeSteps = salarySteps[salaryGradeSelect.value] || [];
+            const selectedStep = preserveSelection ? salaryStepSelect.dataset.selected : '';
+            salaryStepSelect.replaceChildren();
+
+            const placeholder = document.createElement('option');
+            placeholder.value = '';
+            placeholder.textContent = gradeSteps.length ? 'Select salary step' : 'Select salary grade first';
+            salaryStepSelect.appendChild(placeholder);
+
+            gradeSteps.forEach((step) => {
+                const option = document.createElement('option');
+                option.value = step.value;
+                option.textContent = step.label;
+                option.selected = step.value === selectedStep;
+                salaryStepSelect.appendChild(option);
+            });
+
+            salaryStepSelect.disabled = gradeSteps.length === 0;
+        }
+
+        salaryGradeSelect.addEventListener('change', () => {
+            salaryStepSelect.dataset.selected = '';
+            setSalaryStepOptions(false);
+        });
+        setSalaryStepOptions(true);
+    }
+</script>
 {% endblock %}

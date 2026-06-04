@@ -162,7 +162,7 @@ def plantilla_list(request):
         'office_id': office_id,
         'position_status': position_status,
         'salary_grade': salary_grade,
-        'salary_grades': range(1, 34),
+        'salary_grades': SalaryGrade.objects.values_list('grade_number', flat=True).order_by('grade_number'),
         'non_plantilla_type': non_plantilla_type,
         'position_status_choices': Item.POSITION_STATUS_CHOICES,
         'non_plantilla_type_choices': NonPlantillaEmployee.EMPLOYEE_TYPE_CHOICES,
@@ -478,7 +478,7 @@ def plantilla_create(request):
         data['employment_type'] = 'permanent'
         data['funding_source'] = 'PS'
 
-        form = ItemForm(data)
+        form = ItemForm(data, use_salary_grade_controls=True)
         if form.is_valid():
             item = form.save()
             if _request_wants_json(request):
@@ -493,7 +493,10 @@ def plantilla_create(request):
                 }
             }, status=400)
     else:
-        form = ItemForm(initial={'employment_type': 'permanent', 'funding_source': 'PS'})
+        form = ItemForm(
+            initial={'employment_type': 'permanent', 'funding_source': 'PS'},
+            use_salary_grade_controls=True,
+        )
 
     _prepare_permanent_form(form)
 

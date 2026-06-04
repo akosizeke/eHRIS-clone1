@@ -272,8 +272,6 @@
                 <input type="hidden" name="tab" value="offices">
                 <div class="plantilla-filters">
                     <input type="search" name="office_q" value="{{ office_search }}" placeholder="Search offices" aria-label="Search offices">
-                    <button type="submit">Search</button>
-                    <a class="plantilla-button" href="{% url 'plantilla:list' %}?tab=offices">Reset</a>
                 </div>
             </form>
 
@@ -369,8 +367,6 @@
                             <option value="{{ sg }}" {% if salary_grade == sg|stringformat:"s" %}selected{% endif %}>SG {{ sg }}</option>
                         {% endfor %}
                     </select>
-                    <button type="submit">Filter</button>
-                    <a class="plantilla-button" href="{% url 'plantilla:list' %}?tab=plantilla">Reset</a>
                 </form>
                 <a class="plantilla-button primary" href="{% url 'plantilla:create' %}">+ Add Position</a>
             </div>
@@ -439,8 +435,6 @@
                             <option value="{{ office.pk }}" {% if office_id == office.pk|stringformat:"s" %}selected{% endif %}>{{ office.name }}</option>
                         {% endfor %}
                     </select>
-                    <button type="submit">Filter</button>
-                    <a class="plantilla-button" href="{% url 'plantilla:list' %}?tab=non-plantilla">Reset</a>
                 </form>
                 <a class="plantilla-button primary" href="{% url 'plantilla:non_plantilla_create' %}">+ Add Non-Plantilla</a>
             </div>
@@ -500,6 +494,30 @@
             var row = document.getElementById(button.dataset.target);
             var isOpen = row.classList.toggle('is-open');
             button.innerHTML = isOpen ? '&#9660;' : '&#9654;';
+        });
+    });
+
+    document.querySelectorAll('.plantilla-filters').forEach(function (filterGroup) {
+        var form = filterGroup.matches('form') ? filterGroup : filterGroup.closest('form');
+        var searchTimer;
+
+        if (!form) {
+            return;
+        }
+
+        filterGroup.querySelectorAll('input[type="search"]').forEach(function (input) {
+            input.addEventListener('input', function () {
+                window.clearTimeout(searchTimer);
+                searchTimer = window.setTimeout(function () {
+                    form.requestSubmit();
+                }, 350);
+            });
+        });
+
+        filterGroup.querySelectorAll('select').forEach(function (select) {
+            select.addEventListener('change', function () {
+                form.requestSubmit();
+            });
         });
     });
 </script>
