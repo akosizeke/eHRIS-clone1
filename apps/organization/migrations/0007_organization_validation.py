@@ -3,6 +3,21 @@ from django.db import migrations, models
 from django.db.models import Q
 
 
+def clean_existing_province_codes(apps, schema_editor):
+    Organization = apps.get_model('organization', 'Organization')
+
+    for organization in Organization.objects.all():
+        digits = ''.join(char for char in (organization.province_code or '') if char.isdigit())
+        if len(digits) == 4:
+            cleaned = digits
+        else:
+            cleaned = '0000'
+
+        if organization.province_code != cleaned:
+            organization.province_code = cleaned
+            organization.save(update_fields=['province_code'])
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -43,10 +58,11 @@ class Migration(migrations.Migration):
                 validators=[apps.organization.models.address_validator],
             ),
         ),
+        migrations.RunPython(clean_existing_province_codes, migrations.RunPython.noop),
         migrations.AddConstraint(
             model_name='organization',
             constraint=models.CheckConstraint(
-                condition=Q(province_code__regex=r'^\d{4}$'),
+                condition=Q(province_code__regex=r'^[0-9]{4}$'),
                 name='organization_province_code_4_digits',
             ),
         ),

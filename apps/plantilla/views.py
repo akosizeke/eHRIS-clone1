@@ -1,14 +1,23 @@
 import json
+import re
+from io import BytesIO
+from urllib.parse import quote
+from zipfile import BadZipFile
 
+from django.core.exceptions import ValidationError
+from django.db import IntegrityError, transaction
 from django.db.models import Count, Q
-from django.http import HttpResponseBadRequest, JsonResponse
+from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils import timezone
+from openpyxl import Workbook, load_workbook
+from openpyxl.utils.exceptions import InvalidFileException
 
 from apps.organization.models import Office
 
 from .forms import ItemForm, NonPlantillaEmployeeForm
-from .models import Item, NonPlantillaEmployee
+from .models import Item, NonPlantillaEmployee, SalaryGrade, SalaryGradeStep
 
 
 # Converts a plantilla item model into JSON for API-style responses.
@@ -175,6 +184,290 @@ def plantilla_detail(request, pk):
         'item': item,
         'history': item.history.all(),
     })
+
+
+# Shows the salary grade management page and handles manual salary grade entries.
+def salary_grade(request):
+    errors = []
+    submitted = {}
+
+    if request.method == 'POST':
+        submitted = request.POST.copy()
+        amount = submitted.get('amount', '').strip()
+
+        if not amount.isdigit() or int(amount) < 1:
+            errors.append('Enter a valid amount.')
+
+        if not errors:
+            try:
+                with transaction.atomic():
+                    next_grade_number, next_step_number = _next_salary_grade_step()
+                    salary_grade_item, _ = SalaryGrade.objects.get_or_create(
+                        grade_number=next_grade_number,
+                    )
+                    salary_step = SalaryGradeStep(
+                        salary_grade=salary_grade_item,
+                        step_number=next_step_number,
+                        amount=int(amount),
+                        source=SalaryGradeStep.SourceType.MANUAL,
+                    )
+                    salary_step.full_clean()
+                    salary_step.save()
+
+                return redirect(f"{reverse('plantilla:salary_grade')}?added=1")
+            except IntegrityError:
+                errors.append('Unable to add amount to the next salary grade step.')
+            except ValidationError as error:
+                if hasattr(error, 'message_dict'):
+                    for messages in error.message_dict.values():
+                        errors.extend(messages)
+                else:
+                    errors.extend(error.messages)
+
+    selected_grade = request.GET.get('grade', '').strip()
+    if selected_grade and not selected_grade.isdigit():
+        return HttpResponseBadRequest('Invalid salary grade.')
+
+    salary_grades = SalaryGrade.objects.prefetch_related('steps').order_by('grade_number')
+    grade_options = salary_grades
+    if selected_grade:
+        salary_grades = salary_grades.filter(grade_number=int(selected_grade))
+
+    rows = []
+    for salary_grade_item in salary_grades:
+        steps_by_number = {
+            step.step_number: step
+            for step in salary_grade_item.steps.all()
+        }
+        rows.append({
+            'grade_number': salary_grade_item.grade_number,
+            'steps': [
+                f"{steps_by_number[step].amount:,}"
+                if step in steps_by_number and steps_by_number[step].amount
+                else '-'
+                for step in range(1, 9)
+            ],
+        })
+
+    next_grade_number, next_step_number = _next_salary_grade_step()
+    notice = ''
+    if request.GET.get('added') == '1':
+        notice = 'Amount added.'
+    elif request.GET.get('imported'):
+        notice = f"Imported {request.GET.get('imported')} step values."
+
+    if request.GET.get('import_error'):
+        errors.append(request.GET.get('import_error'))
+
+    return render(request, 'salary_grade/salary_grade.html', {
+        'errors': errors,
+        'grade_options': grade_options,
+        'rows': rows,
+        'selected_grade': selected_grade,
+        'submitted': submitted,
+        'next_grade_number': next_grade_number,
+        'next_step_number': next_step_number,
+        'notice': notice,
+    })
+
+
+def salary_grade_export(request):
+    selected_grade = request.GET.get('grade', '').strip()
+    if selected_grade and not selected_grade.isdigit():
+        return HttpResponseBadRequest('Invalid salary grade.')
+
+    salary_grades = SalaryGrade.objects.prefetch_related('steps').order_by('grade_number')
+    if selected_grade:
+        salary_grades = salary_grades.filter(grade_number=int(selected_grade))
+
+    rows = []
+    for salary_grade_item in salary_grades:
+        steps_by_number = {
+            step.step_number: step.amount
+            for step in salary_grade_item.steps.all()
+        }
+        rows.append([
+            salary_grade_item.grade_number,
+            *[steps_by_number.get(step) for step in range(1, 9)],
+        ])
+
+    workbook = _salary_grade_workbook(rows)
+    filename = f"salary_grade_{timezone.localdate().isoformat()}.xlsx"
+    response = HttpResponse(
+        workbook,
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+
+def salary_grade_import(request):
+    if request.method != 'POST':
+        return redirect('plantilla:salary_grade')
+
+    workbook = request.FILES.get('salary_file')
+    if not workbook:
+        return _salary_grade_import_error('Choose an Excel file to import.')
+
+    if not workbook.name.lower().endswith('.xlsx'):
+        return _salary_grade_import_error('Only .xlsx files are supported.')
+
+    try:
+        rows = _read_salary_grade_xlsx(workbook)
+    except (BadZipFile, InvalidFileException, KeyError, ValueError):
+        return _salary_grade_import_error('Import failed. Check the salary grade Excel format.')
+
+    if not rows:
+        return _salary_grade_import_error('No salary grade rows found in the Excel file.')
+
+    imported_count = 0
+    with transaction.atomic():
+        for row in rows:
+            salary_grade_item, _ = SalaryGrade.objects.get_or_create(
+                grade_number=row['grade_number'],
+            )
+            for step_number, amount in row['steps'].items():
+                SalaryGradeStep.objects.update_or_create(
+                    salary_grade=salary_grade_item,
+                    step_number=step_number,
+                    defaults={
+                        'amount': amount,
+                        'source': SalaryGradeStep.SourceType.IMPORTED,
+                    },
+                )
+                imported_count += 1
+
+    return redirect(f"{reverse('plantilla:salary_grade')}?imported={imported_count}")
+
+
+def _salary_grade_import_error(message):
+    return redirect(f"{reverse('plantilla:salary_grade')}?import_error={quote(message)}")
+
+
+def _read_salary_grade_xlsx(workbook):
+    workbook.seek(0)
+    sheet = load_workbook(workbook, read_only=True, data_only=True).active
+    rows = [
+        list(row)
+        for row in sheet.iter_rows(values_only=True)
+        if any(value not in (None, '') for value in row)
+    ]
+    if not rows:
+        return []
+
+    header_index = _salary_grade_header_index(rows)
+    if header_index is None:
+        raise ValueError('Missing salary grade headers.')
+
+    headers = rows[header_index]
+    grade_column = _salary_grade_column(headers)
+    step_columns = _salary_step_columns(headers)
+    if grade_column is None or not step_columns:
+        raise ValueError('Missing salary grade columns.')
+
+    imported_rows = []
+    for row in rows[header_index + 1:]:
+        grade_number = _parse_salary_grade_number(_row_value(row, grade_column))
+        if not grade_number:
+            continue
+
+        steps = {}
+        for step_number, column_index in step_columns.items():
+            amount = _parse_salary_amount(_row_value(row, column_index))
+            if amount:
+                steps[step_number] = amount
+
+        if steps:
+            imported_rows.append({
+                'grade_number': grade_number,
+                'steps': steps,
+            })
+
+    return imported_rows
+
+
+def _salary_grade_header_index(rows):
+    for index, row in enumerate(rows):
+        headers = [_normalize_header(value) for value in row]
+        if any(header in {'salarygrade', 'salary', 'grade'} for header in headers):
+            if any(header.startswith('step') for header in headers):
+                return index
+    return None
+
+
+def _salary_grade_column(headers):
+    for column_index, value in enumerate(headers):
+        if _normalize_header(value) in {'salarygrade', 'salary', 'grade'}:
+            return column_index
+    return None
+
+
+def _salary_step_columns(headers):
+    columns = {}
+    for column_index, value in enumerate(headers):
+        match = re.fullmatch(r'step([1-8])', _normalize_header(value))
+        if match:
+            columns[int(match.group(1))] = column_index
+    return columns
+
+
+def _normalize_header(value):
+    return re.sub(r'[^a-z0-9]', '', str(value).strip().lower())
+
+
+def _parse_salary_grade_number(value):
+    match = re.search(r'\d+', str(value))
+    return int(match.group(0)) if match else None
+
+
+def _parse_salary_amount(value):
+    cleaned = str(value).strip().replace(',', '')
+    if cleaned in {'', '-'}:
+        return None
+    if re.fullmatch(r'\d+(\.0+)?', cleaned):
+        return int(float(cleaned))
+    return None
+
+
+def _row_value(row, column_index):
+    return row[column_index] if column_index < len(row) else ''
+
+
+def _next_salary_grade_step():
+    last_step = SalaryGradeStep.objects.select_related('salary_grade').order_by(
+        '-salary_grade__grade_number',
+        '-step_number',
+    ).first()
+
+    if last_step:
+        if last_step.step_number >= 8:
+            return last_step.salary_grade.grade_number + 1, 1
+        return last_step.salary_grade.grade_number, last_step.step_number + 1
+
+    last_grade = SalaryGrade.objects.order_by('-grade_number').first()
+    if last_grade:
+        return last_grade.grade_number, 1
+
+    return 1, 1
+
+
+def _salary_grade_workbook(rows):
+    headers = ['Salary Grade', 'Step 1', 'Step 2', 'Step 3', 'Step 4', 'Step 5', 'Step 6', 'Step 7', 'Step 8']
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = 'Salary Grade'
+    sheet.append(headers)
+
+    for row in rows:
+        sheet.append(row)
+
+    for column_cells in sheet.columns:
+        width = max(len(str(cell.value or '')) for cell in column_cells) + 2
+        sheet.column_dimensions[column_cells[0].column_letter].width = max(width, 12)
+
+    output = BytesIO()
+    workbook.save(output)
+    return output.getvalue()
 
 
 # Creates a plantilla item through the ItemForm and redirects to its detail page.

@@ -17,7 +17,7 @@ address_validator = RegexValidator(
     message='Use only letters, numbers, spaces, and basic address punctuation.',
 )
 province_code_validator = RegexValidator(
-    regex=r'^\d{4}$',
+    regex=r'^[0-9]{4}$',
     message='Province code must be exactly 4 digits.',
 )
 office_name_validator = RegexValidator(
@@ -57,7 +57,7 @@ class Organization(models.Model):
         ordering = ['name']
         constraints = [
             models.CheckConstraint(
-                condition=Q(province_code__regex=r'^\d{4}$'),
+                condition=Q(province_code__regex=r'^[0-9]{4}$'),
                 name='organization_province_code_4_digits',
             ),
         ]

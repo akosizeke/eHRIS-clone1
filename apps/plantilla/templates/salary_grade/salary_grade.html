@@ -1,0 +1,230 @@
+{% extends "organization/base.html" %}
+
+{% block title %}Salary Grade | eHRIS{% endblock %}
+
+{% block extra_head %}
+<style>
+    .salary-grade-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+    }
+
+    .salary-grade-actions form {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .salary-grade-actions button,
+    .salary-grade-actions .button {
+        width: 96px;
+        min-height: 38px;
+        padding: 8px 12px;
+        border-radius: 4px;
+        box-sizing: border-box;
+    }
+
+    .salary-grade-controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+        justify-content: flex-end;
+    }
+
+    .salary-grade-add-inline {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .salary-grade-add-fields {
+        display: none;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .salary-grade-add-fields.is-open {
+        display: flex;
+    }
+
+    .salary-grade-add-fields input {
+        width: 170px;
+        min-height: 38px;
+    }
+
+    .salary-grade-add-fields .muted {
+        margin: 0;
+        white-space: nowrap;
+    }
+
+    .salary-grade-actions select {
+        width: auto;
+        min-width: 190px;
+    }
+
+    .salary-grade-import-input {
+        display: none;
+    }
+
+    .salary-grade-table th,
+    .salary-grade-table td {
+        text-align: center;
+    }
+
+    .salary-grade-table td:first-child,
+    .salary-grade-table th:first-child {
+        text-align: left;
+    }
+
+    .salary-grade-empty {
+        padding: 18px;
+    }
+
+    .salary-grade-next {
+        margin-bottom: 12px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="salary-grade-page">
+    <header class="page-header">
+        <div>
+            <h1>Salary Grade</h1>
+        </div>
+    </header>
+
+    {% if notice %}
+        <div class="notice">{{ notice }}</div>
+    {% endif %}
+
+    {% if errors %}
+        <div class="notice error">
+            {% for error in errors %}
+                <div>{{ error }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <section class="panel" aria-label="Salary grade list">
+        <div class="salary-grade-actions">
+            <h3>Salary Grade Table</h3>
+            <div class="salary-grade-controls">
+                <form method="get">
+                    <select name="grade" aria-label="Filter salary grade">
+                        <option value="">All salary grades</option>
+                        {% for grade in grade_options %}
+                            <option value="{{ grade.grade_number }}" {% if selected_grade == grade.grade_number|stringformat:"s" %}selected{% endif %}>
+                                Salary Grade {{ grade.grade_number }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </form>
+                <form class="salary-grade-add-inline" method="post">
+                    {% csrf_token %}
+                    <button class="secondary salary-grade-add-button" type="button">Add</button>
+                    <div class="salary-grade-add-fields">
+                        <span class="muted">SG {{ next_grade_number }}, Step {{ next_step_number }}</span>
+                        <input type="number" name="amount" min="1" value="{{ submitted.amount }}" placeholder="Amount" required>
+                        <button type="submit">Save</button>
+                        <button class="secondary salary-grade-add-cancel" type="button">Cancel</button>
+                    </div>
+                </form>
+                <a class="button secondary" href="{% url 'plantilla:salary_grade_export' %}{% if selected_grade %}?grade={{ selected_grade }}{% endif %}">Export</a>
+                <form method="post" action="{% url 'plantilla:salary_grade_import' %}" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <input class="salary-grade-import-input" type="file" name="salary_file" accept=".xlsx" required>
+                    <button class="secondary salary-grade-import-button" type="button">Import</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="table-scroll">
+            <table class="salary-grade-table">
+                <thead>
+                    <tr>
+                        <th>Salary Grade</th>
+                        <th>Step 1</th>
+                        <th>Step 2</th>
+                        <th>Step 3</th>
+                        <th>Step 4</th>
+                        <th>Step 5</th>
+                        <th>Step 6</th>
+                        <th>Step 7</th>
+                        <th>Step 8</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in rows %}
+                        <tr>
+                            <td>{{ row.grade_number }}</td>
+                            {% for amount in row.steps %}
+                                <td>{{ amount }}</td>
+                            {% endfor %}
+                            <td>View</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="10" class="salary-grade-empty">No salary grades yet.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.querySelector('[name="grade"]').addEventListener('change', function () {
+        this.form.submit();
+    });
+
+    var addButton = document.querySelector('.salary-grade-add-button');
+    var addFields = document.querySelector('.salary-grade-add-fields');
+    var addCancel = document.querySelector('.salary-grade-add-cancel');
+    var amountInput = document.querySelector('[name="amount"]');
+
+    addButton.addEventListener('click', function () {
+        addFields.classList.add('is-open');
+        addButton.style.display = 'none';
+        amountInput.focus();
+    });
+
+    addCancel.addEventListener('click', function () {
+        addFields.classList.remove('is-open');
+        addButton.style.display = '';
+        amountInput.value = '';
+    });
+
+    var importButton = document.querySelector('.salary-grade-import-button');
+    var importInput = document.querySelector('.salary-grade-import-input');
+
+    importButton.addEventListener('click', function () {
+        importInput.click();
+    });
+
+    importInput.addEventListener('change', function () {
+        if (!importInput.files.length) {
+            return;
+        }
+
+        var fileName = importInput.files[0].name;
+        if (confirm('Import "' + fileName + '" into the salary grade table?')) {
+            importInput.form.submit();
+        } else {
+            importInput.value = '';
+        }
+    });
+</script>
+{% endblock %}

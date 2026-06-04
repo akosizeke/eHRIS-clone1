@@ -3,6 +3,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.db.models.functions import Lower
 from apps.core.models import AbstractBaseModel
+from django.conf import settings
 
 
 item_number_validator = RegexValidator(
@@ -203,3 +204,93 @@ class History(AbstractBaseModel):
 
     def __str__(self):
         return f"{self.plantilla_item} — {self.get_change_type_display()}"
+
+#CAMILLE CRISOSTOMO - 2024-06-17
+#SALARY GRADE MODEL FOR SALARY GRADE TABLE
+
+
+
+class SalaryGrade(models.Model):
+    """
+    Represents the salary grade number.
+    Example: Salary Grade 1, Salary Grade 2, Salary Grade 33, Salary Grade 34.
+    """
+
+    grade_number = models.PositiveIntegerField(unique=True, validators=[MinValueValidator(1)])
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "salary_grade"
+        ordering = ["grade_number"]
+        verbose_name = "Salary Grade"
+        verbose_name_plural = "Salary Grades"
+
+    def __str__(self):
+        return f"Salary Grade {self.grade_number}"
+
+    def clean(self):
+        if self.grade_number < 1:
+            raise ValidationError({
+                "grade_number": "Salary grade must be greater than 0."
+            })
+
+
+class SalaryGradeStep(models.Model):
+    """
+    Represents one step amount inside a salary grade.
+    Example: Salary Grade 2 - Step 1 - 14900.
+    """
+
+    class SourceType(models.TextChoices):
+        MANUAL = "manual", "Manual"
+        IMPORTED = "imported", "Imported"
+
+    salary_grade = models.ForeignKey(SalaryGrade, on_delete=models.PROTECT, related_name="steps")
+    step_number = models.PositiveSmallIntegerField(validators=[MinValueValidator(1),MaxValueValidator(8)])
+    amount = models.PositiveIntegerField(null=True, blank=True, validators=[MinValueValidator(1)])
+    source = models.CharField(max_length=20, choices=SourceType.choices, default=SourceType.MANUAL)
+    imported_at = models.DateTimeField(null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "salary_grade_step"
+        ordering = ["salary_grade__grade_number", "step_number"]
+        verbose_name = "Salary Grade Step"
+        verbose_name_plural = "Salary Grade Steps"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["salary_grade", "step_number"],
+                name="unique_step_per_salary_grade"
+            )
+        ]
+
+    def __str__(self):
+        return (
+            f"Salary Grade {self.salary_grade.grade_number} - "
+            f"Step {self.step_number}"
+        )
+
+    @property
+    def is_locked(self):
+        """
+        Imported values are locked.
+        Manual values are editable.
+        """
+        return self.source == self.SourceType.IMPORTED
+
+    @property
+    def is_editable(self):
+        """
+        Used by the modal/UI to know if the step can be edited.
+        """
+        return self.source == self.SourceType.MANUAL
+
+    def clean(self):
+        if self.step_number < 1 or self.step_number > 8:
+            raise ValidationError({
+                "step_number": "Step number must be from 1 to 8 only."
+            })

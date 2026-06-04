@@ -8,6 +8,12 @@ app_name = 'plantilla'
 urlpatterns = [
     # List and filter plantilla items.
     path('', views.plantilla_list, name='list'),
+    # Salary grade table placeholder page.
+    path('salary-grade/', views.salary_grade, name='salary_grade'),
+    # Download the salary grade table as an Excel workbook.
+    path('salary-grade/export/', views.salary_grade_export, name='salary_grade_export'),
+    # Upload an Excel workbook into the salary grade table.
+    path('salary-grade/import/', views.salary_grade_import, name='salary_grade_import'),
     # Create a new plantilla item linked to an office.
     path('create/', views.plantilla_create, name='create'),
     # Edit one permanent plantilla position.
