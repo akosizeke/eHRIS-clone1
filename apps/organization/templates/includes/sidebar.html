@@ -51,7 +51,7 @@
             Offices
         </a>
         {# Plantilla link opens the position and non-plantilla employee management tabs. #}
-        <a class="org-sidebar__link {% if request.resolver_match.app_name == 'plantilla' and request.resolver_match.url_name != 'salary_grade' %}is-active{% endif %}" href="{{ plantilla_list_url }}">
+        <a class="org-sidebar__link {% if request.resolver_match.app_name == 'plantilla' and request.resolver_match.url_name != 'salary_grade' and request.resolver_match.url_name != 'salary_grade_detail' %}is-active{% endif %}" href="{{ plantilla_list_url }}">
             <span class="org-sidebar__icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" focusable="false">
                     <path d="M6 3h12v18H6V3Zm2 2v14h8V5H8Zm2 2h4v2h-4V7Zm0 4h4v2h-4v-2Zm0 4h3v2h-3v-2Z"/>
@@ -60,7 +60,7 @@
             Plantilla
         </a>
         {# Salary grade link opens the blank salary grade management page. #}
-        <a class="org-sidebar__link {% if request.resolver_match.app_name == 'plantilla' and request.resolver_match.url_name == 'salary_grade' %}is-active{% endif %}" href="{{ salary_grade_url }}">
+        <a class="org-sidebar__link {% if request.resolver_match.app_name == 'plantilla' and request.resolver_match.url_name == 'salary_grade' or request.resolver_match.app_name == 'plantilla' and request.resolver_match.url_name == 'salary_grade_detail' %}is-active{% endif %}" href="{{ salary_grade_url }}">
             <span class="org-sidebar__icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" focusable="false">
                     <path d="M5 4h14v3H5V4Zm0 5h14v3H5V9Zm0 5h14v6H5v-6Zm2 2v2h10v-2H7Z"/>

@@ -270,6 +270,39 @@ def salary_grade(request):
         'notice': notice,
     })
 
+# CAMILLE CRISOSTOMO - 2026-06-08 
+
+def salary_grade_detail(request, grade_number):
+    salary_grade_item = get_object_or_404(
+        SalaryGrade.objects.prefetch_related('steps'),
+        grade_number=grade_number,
+    )
+    steps_by_number = {
+        step.step_number: step
+        for step in salary_grade_item.steps.all()
+    }
+    steps = [
+        {
+            'step_number': step_number,
+            'amount': (
+                f"{steps_by_number[step_number].amount:,}"
+                if step_number in steps_by_number and steps_by_number[step_number].amount
+                else '-'
+            ),
+            'detail': (
+                steps_by_number[step_number].get_source_display()
+                if step_number in steps_by_number
+                else '-'
+            ),
+        }
+        for step_number in range(1, 9)
+    ]
+
+    return render(request, 'salary_grade/salary_grade_detail.html', {
+        'salary_grade': salary_grade_item,
+        'steps': steps,
+    })
+
 
 def salary_grade_export(request):
     selected_grade = request.GET.get('grade', '').strip()

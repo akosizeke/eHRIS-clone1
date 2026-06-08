@@ -170,7 +170,7 @@
                             {% for amount in row.steps %}
                                 <td>{{ amount }}</td>
                             {% endfor %}
-                            <td>View</td>
+                            <td><a href="{% url 'plantilla:salary_grade_detail' row.grade_number %}">View</a></td>
                         </tr>
                     {% empty %}
                         <tr>

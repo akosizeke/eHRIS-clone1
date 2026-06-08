@@ -1,0 +1,37 @@
+{% extends "organization/base.html" %}
+
+{% block title %}Salary Grade | eHRIS{% endblock %}
+
+{% block content %}
+<div class="salary-grade-page">
+    <header class="page-header">
+        <div>
+            <h1>Salary Grade {{ salary_grade.grade_number }}</h1>
+        </div>
+    </header>
+
+    <section class="panel" aria-label="Salary grade steps">
+        <h3>Steps</h3>
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Step</th>
+                        <th>Amount</th>
+                        <th>Detail</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for step in steps %}
+                        <tr>
+                            <td>Step {{ step.step_number }}</td>
+                            <td>{{ step.amount }}</td>
+                            <td>{{ step.detail }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+{% endblock %}
