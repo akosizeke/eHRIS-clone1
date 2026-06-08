@@ -1,0 +1,82 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}eHRIS{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/office_hierarchy.css' %}">
+</head>
+<body class="ehris-shell">
+    <aside class="ehris-sidebar" aria-label="Primary navigation">
+        <a class="ehris-sidebar__brand" href="{% url 'organization:office_hierarchy_index' %}" aria-label="Organization Repository">
+            <span class="ehris-sidebar__brand-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                    <path d="M4 21h16"></path>
+                    <path d="M6 21V9l6-4 6 4v12"></path>
+                    <path d="M9 21v-6h6v6"></path>
+                    <path d="M9 11h.01"></path>
+                    <path d="M12 11h.01"></path>
+                    <path d="M15 11h.01"></path>
+                </svg>
+            </span>
+            <span class="ehris-sidebar__brand-text">
+                <span>Organization</span>
+                <span>Repository</span>
+            </span>
+        </a>
+
+        <nav class="ehris-sidebar__nav">
+            <section class="ehris-sidebar__section">
+                <h2 class="ehris-sidebar__section-title">MAIN</h2>
+                <a class="ehris-sidebar__link {% if request.resolver_match.url_name == 'dashboard' %}is-active{% endif %}" href="{% url 'core:dashboard' %}">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M3 11.5 12 4l9 7.5"></path>
+                        <path d="M5 10.5V21h5v-6h4v6h5V10.5"></path>
+                    </svg>
+                    <span>Dashboard</span>
+                </a>
+            </section>
+
+            <section class="ehris-sidebar__section">
+                <h2 class="ehris-sidebar__section-title">MANAGEMENT</h2>
+                <a class="ehris-sidebar__link {% if 'organization' in request.resolver_match.app_names %}is-active{% endif %}" href="{% url 'organization:office_hierarchy_index' %}">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                    <span>Organization</span>
+                </a>
+            </section>
+
+            <section class="ehris-sidebar__section">
+                <h2 class="ehris-sidebar__section-title">RECORDS</h2>
+                <span class="ehris-sidebar__link ehris-sidebar__link--muted" aria-disabled="true">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M4 20V10"></path>
+                        <path d="M10 20V4"></path>
+                        <path d="M16 20v-8"></path>
+                        <path d="M22 20V7"></path>
+                    </svg>
+                    <span>Plantilla Ledger</span>
+                </span>
+            </section>
+        </nav>
+    </aside>
+
+    <main class="ehris-main">
+        {% if messages %}
+            <div class="ehris-messages" aria-live="polite">
+                {% for message in messages %}
+                    <div class="ehris-message ehris-message--{{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+        {% block content %}{% endblock %}
+    </main>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

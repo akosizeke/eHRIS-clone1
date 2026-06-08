@@ -1,0 +1,42 @@
+<div class="office-hierarchy__node {% if node.children %}collapsed{% else %}office-hierarchy__node--leaf{% endif %}">
+    <button class="office-hierarchy__row tree-node-title" type="button" {% if node.children %}aria-expanded="false"{% else %}aria-expanded="false" disabled{% endif %}>
+        <span class="office-hierarchy__row-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+                <path d="M12 3v4"></path>
+                <path d="M6 11V7h12v4"></path>
+                <rect x="3" y="11" width="6" height="6" rx="1"></rect>
+                <rect x="15" y="11" width="6" height="6" rx="1"></rect>
+                <path d="M12 17v4"></path>
+                <rect x="9" y="15" width="6" height="6" rx="1"></rect>
+            </svg>
+        </span>
+        <span class="office-hierarchy__row-name">{{ node.office.name }}</span>
+        <span class="office-hierarchy__row-head">
+            {% if node.office.office_head_display %}
+                {% if node.office.office_head_title %}{{ node.office.office_head_title }}: {% endif %}{{ node.office.office_head_display }}
+            {% endif %}
+        </span>
+        <span class="office-hierarchy__row-count">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+            {{ node.office.get_office_type_display }}
+        </span>
+        <span class="office-hierarchy__row-chevron" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+                <path d="m6 9 6 6 6-6"></path>
+            </svg>
+        </span>
+    </button>
+
+    {% if node.children %}
+        <div class="office-hierarchy__children tree-children">
+            {% for child in node.children %}
+                {% include "organization/offices/_hierarchy_node.html" with node=child %}
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
