@@ -11,6 +11,7 @@ from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 from openpyxl import Workbook, load_workbook
 from openpyxl.utils.exceptions import InvalidFileException
 
@@ -294,6 +295,19 @@ def salary_grade_detail(request, grade_number):
                 if step_number in steps_by_number
                 else '-'
             ),
+            'amount_value': (
+                steps_by_number[step_number].amount
+                if step_number in steps_by_number
+                else ''
+            ),
+            'is_editable': (
+                step_number in steps_by_number
+                and steps_by_number[step_number].is_editable
+            ),
+            'is_locked': (
+                step_number in steps_by_number
+                and steps_by_number[step_number].is_locked
+            ),
         }
         for step_number in range(1, 9)
     ]
@@ -302,6 +316,26 @@ def salary_grade_detail(request, grade_number):
         'salary_grade': salary_grade_item,
         'steps': steps,
     })
+
+
+@require_POST
+def salary_grade_step_update(request, grade_number, step_number):
+    step = get_object_or_404(
+        SalaryGradeStep.objects.select_related('salary_grade'),
+        salary_grade__grade_number=grade_number,
+        step_number=step_number,
+    )
+    if not step.is_editable:
+        return HttpResponseBadRequest('Imported salary grade steps are view-only.')
+
+    amount = request.POST.get('amount', '').strip()
+    if not amount.isdigit() or int(amount) < 1:
+        return HttpResponseBadRequest('Enter a valid amount.')
+
+    step.amount = int(amount)
+    step.full_clean()
+    step.save(update_fields=['amount', 'updated_at'])
+    return redirect('plantilla:salary_grade_detail', grade_number=grade_number)
 
 
 def salary_grade_export(request):

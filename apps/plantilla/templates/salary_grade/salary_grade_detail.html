@@ -2,12 +2,58 @@
 
 {% block title %}Salary Grade | eHRIS{% endblock %}
 
+{% block extra_head %}
+<style>
+    .salary-grade-step-form {
+        margin: 0;
+    }
+
+    .salary-grade-step-form input {
+        width: 120px;
+        min-height: 36px;
+    }
+
+    .salary-grade-step-input {
+        display: none;
+    }
+
+    tr.is-editing .salary-grade-step-display {
+        display: none;
+    }
+
+    tr.is-editing .salary-grade-step-input {
+        display: inline-block;
+    }
+
+    tr.is-editing .salary-grade-step-edit-link {
+        display: none;
+    }
+
+    .salary-grade-step-actions {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+    }
+
+    .salary-grade-step-action-link {
+        color: #00275f;
+        cursor: pointer;
+        text-decoration: none;
+    }
+
+    .salary-grade-step-action-link:hover {
+        text-decoration: underline;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="salary-grade-page">
     <header class="page-header">
         <div>
             <h1>Salary Grade {{ salary_grade.grade_number }}</h1>
         </div>
+        <a class="button secondary" href="{% url 'plantilla:salary_grade' %}">Back</a>
     </header>
 
     <section class="panel" aria-label="Salary grade steps">
@@ -19,14 +65,36 @@
                         <th>Step</th>
                         <th>Amount</th>
                         <th>Detail</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for step in steps %}
                         <tr>
                             <td>Step {{ step.step_number }}</td>
-                            <td>{{ step.amount }}</td>
+                            <td>
+                                {% if step.is_editable %}
+                                    <form id="salary-grade-step-{{ step.step_number }}-form" class="salary-grade-step-form" method="post" action="{% url 'plantilla:salary_grade_step_update' salary_grade.grade_number step.step_number %}">
+                                        {% csrf_token %}
+                                        <span class="salary-grade-step-display">{{ step.amount }}</span>
+                                        <input class="salary-grade-step-input" type="number" name="amount" min="1" value="{{ step.amount_value }}" required>
+                                    </form>
+                                {% else %}
+                                    {{ step.amount }}
+                                {% endif %}
+                            </td>
                             <td>{{ step.detail }}</td>
+                            <td>
+                                {% if step.is_editable %}
+                                    <div class="salary-grade-step-actions">
+                                        <a class="salary-grade-step-action-link salary-grade-step-edit-link" href="#">Edit</a>
+                                    </div>
+                                {% elif step.is_locked %}
+                                    View Only
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
                         </tr>
                     {% endfor %}
                 </tbody>
@@ -34,4 +102,22 @@
         </div>
     </section>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.querySelectorAll('.salary-grade-step-edit-link').forEach(function (link) {
+        link.addEventListener('click', function (event) {
+            event.preventDefault();
+
+            var row = link.closest('tr');
+            var input = row.querySelector('[name="amount"]');
+
+            row.classList.add('is-editing');
+            input.focus();
+            input.select();
+        });
+    });
+
+</script>
 {% endblock %}

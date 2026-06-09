@@ -12,6 +12,8 @@ urlpatterns = [
     path('salary-grade/', views.salary_grade, name='salary_grade'),
     # Blank salary grade detail page.
     path('salary-grade/<int:grade_number>/', views.salary_grade_detail, name='salary_grade_detail'),
+    # Update one editable manual salary grade step.
+    path('salary-grade/<int:grade_number>/steps/<int:step_number>/update/', views.salary_grade_step_update, name='salary_grade_step_update'),
     # Download the salary grade table as an Excel workbook.
     path('salary-grade/export/', views.salary_grade_export, name='salary_grade_export'),
     # Upload an Excel workbook into the salary grade table.
