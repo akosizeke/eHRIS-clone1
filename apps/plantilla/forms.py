@@ -2,7 +2,13 @@ import json
 
 from django import forms
 
-from .models import Item, NonPlantillaEmployee, SalaryGrade, SalaryGradeStep
+from .models import (
+    Item,
+    NonPlantillaEmployee,
+    SalaryGrade,
+    SalaryGradeStep,
+    SalarySchedule,
+)
 
 
 # Form used by the plantilla create view to validate and style item fields.
@@ -35,12 +41,29 @@ class ItemForm(forms.ModelForm):
         self.fields['legalbasis'].empty_label = 'Select legal basis (optional)'
 
         if use_salary_grade_controls:
+            active_schedule = SalarySchedule.objects.filter(
+                is_active=True,
+            ).order_by('-effective_date', 'name').first()
+            salary_grade_queryset = SalaryGrade.objects.none()
+            salary_step_queryset = SalaryGradeStep.objects.none()
+            if active_schedule:
+                salary_grade_queryset = SalaryGrade.objects.filter(
+                    schedule=active_schedule,
+                    is_active=True,
+                )
+                salary_step_queryset = SalaryGradeStep.objects.select_related(
+                    'salary_grade',
+                ).filter(
+                    salary_grade__schedule=active_schedule,
+                    salary_grade__is_active=True,
+                )
+
             self.fields['salary_grade'].widget = forms.Select(
                 choices=[
                     ('', 'Select salary grade'),
                     *[
                         (grade_number, f'SG {grade_number}')
-                        for grade_number in SalaryGrade.objects.values_list(
+                        for grade_number in salary_grade_queryset.values_list(
                             'grade_number',
                             flat=True,
                         ).order_by('grade_number')
@@ -49,9 +72,10 @@ class ItemForm(forms.ModelForm):
             )
 
             salary_steps = {}
-            for step in SalaryGradeStep.objects.select_related('salary_grade').filter(
-                amount__isnull=False,
-            ).order_by('salary_grade__grade_number', 'step_number'):
+            for step in salary_step_queryset.order_by(
+                'salary_grade__grade_number',
+                'step_number',
+            ):
                 salary_steps.setdefault(str(step.salary_grade.grade_number), []).append({
                     'value': str(step.step_number),
                     'label': f'Step {step.step_number}',

@@ -99,6 +99,9 @@
     <header class="page-header">
         <div>
             <h1>Salary Grade</h1>
+            {% if active_schedule %}
+                <p class="muted">{{ active_schedule.name }}</p>
+            {% endif %}
         </div>
     </header>
 

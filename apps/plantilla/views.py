@@ -18,7 +18,38 @@ from openpyxl.utils.exceptions import InvalidFileException
 from apps.organization.models import Office
 
 from .forms import ItemForm, NonPlantillaEmployeeForm
-from .models import Item, NonPlantillaEmployee, SalaryGrade, SalaryGradeStep
+from .models import (
+    Item,
+    NonPlantillaEmployee,
+    SalaryGrade,
+    SalaryGradeStep,
+    SalarySchedule,
+)
+
+
+DEFAULT_SALARY_SCHEDULE_NAME = 'Default Salary Schedule'
+
+
+def _active_salary_schedule():
+    return SalarySchedule.objects.filter(
+        is_active=True,
+    ).order_by('-effective_date', 'name').first()
+
+
+def _get_or_create_active_salary_schedule():
+    schedule = _active_salary_schedule()
+    if schedule:
+        return schedule
+
+    schedule, _ = SalarySchedule.objects.get_or_create(
+        name=DEFAULT_SALARY_SCHEDULE_NAME,
+        defaults={
+            'description': 'Default container for existing salary grade data.',
+            'effective_date': timezone.localdate(),
+            'is_active': True,
+        },
+    )
+    return schedule
 
 
 # Converts a plantilla item model into JSON for API-style responses.
@@ -152,6 +183,14 @@ def plantilla_list(request):
             ],
         })
 
+    active_salary_schedule = _active_salary_schedule()
+    salary_grade_options = SalaryGrade.objects.none()
+    if active_salary_schedule:
+        salary_grade_options = SalaryGrade.objects.filter(
+            schedule=active_salary_schedule,
+            is_active=True,
+        )
+
     return render(request, 'plantilla/list.html', {
         'active_tab': active_tab,
         'office_rows': office_rows,
@@ -163,7 +202,7 @@ def plantilla_list(request):
         'office_id': office_id,
         'position_status': position_status,
         'salary_grade': salary_grade,
-        'salary_grades': SalaryGrade.objects.values_list('grade_number', flat=True).order_by('grade_number'),
+        'salary_grades': salary_grade_options.values_list('grade_number', flat=True).order_by('grade_number'),
         'non_plantilla_type': non_plantilla_type,
         'position_status_choices': Item.POSITION_STATUS_CHOICES,
         'non_plantilla_type_choices': NonPlantillaEmployee.EMPLOYEE_TYPE_CHOICES,
@@ -202,8 +241,12 @@ def salary_grade(request):
         if not errors:
             try:
                 with transaction.atomic():
-                    next_grade_number, next_step_number = _next_salary_grade_step()
+                    active_schedule = _get_or_create_active_salary_schedule()
+                    next_grade_number, next_step_number = _next_salary_grade_step(
+                        active_schedule,
+                    )
                     salary_grade_item, _ = SalaryGrade.objects.get_or_create(
+                        schedule=active_schedule,
                         grade_number=next_grade_number,
                     )
                     salary_step = SalaryGradeStep(
@@ -211,6 +254,7 @@ def salary_grade(request):
                         step_number=next_step_number,
                         amount=int(amount),
                         source=SalaryGradeStep.SourceType.MANUAL,
+                        is_editable=True,
                     )
                     salary_step.full_clean()
                     salary_step.save()
@@ -229,7 +273,13 @@ def salary_grade(request):
     if selected_grade and not selected_grade.isdigit():
         return HttpResponseBadRequest('Invalid salary grade.')
 
-    salary_grades = SalaryGrade.objects.prefetch_related('steps').order_by('grade_number')
+    active_schedule = _active_salary_schedule()
+    salary_grades = SalaryGrade.objects.none()
+    if active_schedule:
+        salary_grades = SalaryGrade.objects.filter(
+            schedule=active_schedule,
+            is_active=True,
+        ).prefetch_related('steps').order_by('grade_number')
     grade_options = salary_grades
     if selected_grade:
         salary_grades = salary_grades.filter(grade_number=int(selected_grade))
@@ -250,12 +300,17 @@ def salary_grade(request):
             ],
         })
 
-    next_grade_number, next_step_number = _next_salary_grade_step()
+    if active_schedule:
+        next_grade_number, next_step_number = _next_salary_grade_step(active_schedule)
+    else:
+        next_grade_number, next_step_number = 1, 1
     notice = ''
     if request.GET.get('added') == '1':
         notice = 'Amount added.'
     elif request.GET.get('imported'):
-        notice = f"Imported {request.GET.get('imported')} step values."
+        notice = f"Imported {request.GET.get('imported')} new step values."
+        if request.GET.get('skipped'):
+            notice = f"{notice} Skipped {request.GET.get('skipped')} existing step values."
 
     if request.GET.get('import_error'):
         errors.append(request.GET.get('import_error'))
@@ -269,13 +324,19 @@ def salary_grade(request):
         'next_grade_number': next_grade_number,
         'next_step_number': next_step_number,
         'notice': notice,
+        'active_schedule': active_schedule,
     })
 
 # CAMILLE CRISOSTOMO - 2026-06-08 
 
 def salary_grade_detail(request, grade_number):
+    active_schedule = _active_salary_schedule()
+    if not active_schedule:
+        return HttpResponseBadRequest('No active salary schedule.')
+
     salary_grade_item = get_object_or_404(
         SalaryGrade.objects.prefetch_related('steps'),
+        schedule=active_schedule,
         grade_number=grade_number,
     )
     steps_by_number = {
@@ -315,13 +376,19 @@ def salary_grade_detail(request, grade_number):
     return render(request, 'salary_grade/salary_grade_detail.html', {
         'salary_grade': salary_grade_item,
         'steps': steps,
+        'active_schedule': active_schedule,
     })
 
 
 @require_POST
 def salary_grade_step_update(request, grade_number, step_number):
+    active_schedule = _active_salary_schedule()
+    if not active_schedule:
+        return HttpResponseBadRequest('No active salary schedule.')
+
     step = get_object_or_404(
         SalaryGradeStep.objects.select_related('salary_grade'),
+        salary_grade__schedule=active_schedule,
         salary_grade__grade_number=grade_number,
         step_number=step_number,
     )
@@ -343,7 +410,13 @@ def salary_grade_export(request):
     if selected_grade and not selected_grade.isdigit():
         return HttpResponseBadRequest('Invalid salary grade.')
 
-    salary_grades = SalaryGrade.objects.prefetch_related('steps').order_by('grade_number')
+    active_schedule = _active_salary_schedule()
+    salary_grades = SalaryGrade.objects.none()
+    if active_schedule:
+        salary_grades = SalaryGrade.objects.filter(
+            schedule=active_schedule,
+            is_active=True,
+        ).prefetch_related('steps').order_by('grade_number')
     if selected_grade:
         salary_grades = salary_grades.filter(grade_number=int(selected_grade))
 
@@ -388,23 +461,33 @@ def salary_grade_import(request):
         return _salary_grade_import_error('No salary grade rows found in the Excel file.')
 
     imported_count = 0
+    skipped_count = 0
     with transaction.atomic():
+        active_schedule = _get_or_create_active_salary_schedule()
         for row in rows:
             salary_grade_item, _ = SalaryGrade.objects.get_or_create(
+                schedule=active_schedule,
                 grade_number=row['grade_number'],
             )
             for step_number, amount in row['steps'].items():
-                SalaryGradeStep.objects.update_or_create(
+                _, created = SalaryGradeStep.objects.get_or_create(
                     salary_grade=salary_grade_item,
                     step_number=step_number,
                     defaults={
                         'amount': amount,
                         'source': SalaryGradeStep.SourceType.IMPORTED,
+                        'is_editable': False,
                     },
                 )
-                imported_count += 1
+                if created:
+                    imported_count += 1
+                else:
+                    skipped_count += 1
 
-    return redirect(f"{reverse('plantilla:salary_grade')}?imported={imported_count}")
+    return redirect(
+        f"{reverse('plantilla:salary_grade')}"
+        f"?imported={imported_count}&skipped={skipped_count}"
+    )
 
 
 def _salary_grade_import_error(message):
@@ -500,10 +583,12 @@ def _row_value(row, column_index):
     return row[column_index] if column_index < len(row) else ''
 
 
-def _next_salary_grade_step():
+def _next_salary_grade_step(schedule):
     last_step = SalaryGradeStep.objects.select_related('salary_grade').order_by(
         '-salary_grade__grade_number',
         '-step_number',
+    ).filter(
+        salary_grade__schedule=schedule,
     ).first()
 
     if last_step:
@@ -511,7 +596,9 @@ def _next_salary_grade_step():
             return last_step.salary_grade.grade_number + 1, 1
         return last_step.salary_grade.grade_number, last_step.step_number + 1
 
-    last_grade = SalaryGrade.objects.order_by('-grade_number').first()
+    last_grade = SalaryGrade.objects.filter(
+        schedule=schedule,
+    ).order_by('-grade_number').first()
     if last_grade:
         return last_grade.grade_number, 1
 
