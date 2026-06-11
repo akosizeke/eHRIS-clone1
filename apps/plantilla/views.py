@@ -1,7 +1,7 @@
 import json
 import re
 from io import BytesIO
-from urllib.parse import quote
+from urllib.parse import quote, urlencode
 from zipfile import BadZipFile
 
 from django.core.exceptions import ValidationError
@@ -17,7 +17,7 @@ from openpyxl.utils.exceptions import InvalidFileException
 
 from apps.organization.models import Office
 
-from .forms import ItemForm, NonPlantillaEmployeeForm
+from .forms import ItemForm, NonPlantillaEmployeeForm, SalaryScheduleForm
 from .models import (
     Item,
     NonPlantillaEmployee,
@@ -33,6 +33,7 @@ DEFAULT_SALARY_SCHEDULE_NAME = 'Default Salary Schedule'
 def _active_salary_schedule():
     return SalarySchedule.objects.filter(
         is_active=True,
+        effective_date__lte=timezone.localdate(),
     ).order_by('-effective_date', 'name').first()
 
 
@@ -50,6 +51,30 @@ def _get_or_create_active_salary_schedule():
         },
     )
     return schedule
+
+
+def _selected_salary_schedule(request, create=False):
+    schedule_id = request.GET.get('schedule') or request.POST.get('schedule')
+    if schedule_id:
+        return get_object_or_404(SalarySchedule, pk=schedule_id)
+    if create:
+        return _get_or_create_active_salary_schedule()
+    return _active_salary_schedule()
+
+
+def _salary_grade_url(schedule=None, **params):
+    query = {}
+    if schedule:
+        query['schedule'] = str(schedule.pk)
+    query.update({
+        key: value
+        for key, value in params.items()
+        if value not in (None, '')
+    })
+    url = reverse('plantilla:salary_grade')
+    if query:
+        return f'{url}?{urlencode(query)}'
+    return url
 
 
 # Converts a plantilla item model into JSON for API-style responses.
@@ -241,7 +266,7 @@ def salary_grade(request):
         if not errors:
             try:
                 with transaction.atomic():
-                    active_schedule = _get_or_create_active_salary_schedule()
+                    active_schedule = _selected_salary_schedule(request, create=True)
                     next_grade_number, next_step_number = _next_salary_grade_step(
                         active_schedule,
                     )
@@ -259,7 +284,7 @@ def salary_grade(request):
                     salary_step.full_clean()
                     salary_step.save()
 
-                return redirect(f"{reverse('plantilla:salary_grade')}?added=1")
+                return redirect(_salary_grade_url(active_schedule, added=1))
             except IntegrityError:
                 errors.append('Unable to add amount to the next salary grade step.')
             except ValidationError as error:
@@ -273,7 +298,7 @@ def salary_grade(request):
     if selected_grade and not selected_grade.isdigit():
         return HttpResponseBadRequest('Invalid salary grade.')
 
-    active_schedule = _active_salary_schedule()
+    active_schedule = _selected_salary_schedule(request)
     salary_grades = SalaryGrade.objects.none()
     if active_schedule:
         salary_grades = SalaryGrade.objects.filter(
@@ -325,12 +350,50 @@ def salary_grade(request):
         'next_step_number': next_step_number,
         'notice': notice,
         'active_schedule': active_schedule,
+        'salary_schedules': SalarySchedule.objects.order_by('-effective_date', 'name'),
     })
+
+
+def salary_schedule_list(request):
+    if request.method == 'POST':
+        form = SalaryScheduleForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect(f"{reverse('plantilla:salary_schedule_list')}?created=1")
+    else:
+        form = SalaryScheduleForm()
+
+    schedules = SalarySchedule.objects.annotate(
+        grade_count=Count('salary_grades', distinct=True),
+        step_count=Count('salary_grades__steps', distinct=True),
+    ).order_by('-effective_date', 'name')
+
+    notice = ''
+    if request.GET.get('created') == '1':
+        notice = 'Salary schedule created.'
+    elif request.GET.get('activated') == '1':
+        notice = 'Salary schedule enabled.'
+
+    return render(request, 'salary_grade/salary_schedule_list.html', {
+        'form': form,
+        'notice': notice,
+        'schedules': schedules,
+    })
+
+
+@require_POST
+def salary_schedule_activate(request, schedule_id):
+    schedule = get_object_or_404(SalarySchedule, pk=schedule_id)
+    if not schedule.is_active:
+        schedule.is_active = True
+        schedule.save(update_fields=['is_active', 'updated_at'])
+    return redirect(f"{reverse('plantilla:salary_schedule_list')}?activated=1")
+
 
 # CAMILLE CRISOSTOMO - 2026-06-08 
 
 def salary_grade_detail(request, grade_number):
-    active_schedule = _active_salary_schedule()
+    active_schedule = _selected_salary_schedule(request)
     if not active_schedule:
         return HttpResponseBadRequest('No active salary schedule.')
 
@@ -382,7 +445,7 @@ def salary_grade_detail(request, grade_number):
 
 @require_POST
 def salary_grade_step_update(request, grade_number, step_number):
-    active_schedule = _active_salary_schedule()
+    active_schedule = _selected_salary_schedule(request)
     if not active_schedule:
         return HttpResponseBadRequest('No active salary schedule.')
 
@@ -402,7 +465,10 @@ def salary_grade_step_update(request, grade_number, step_number):
     step.amount = int(amount)
     step.full_clean()
     step.save(update_fields=['amount', 'updated_at'])
-    return redirect('plantilla:salary_grade_detail', grade_number=grade_number)
+    return redirect(
+        f"{reverse('plantilla:salary_grade_detail', kwargs={'grade_number': grade_number})}"
+        f"?{urlencode({'schedule': str(active_schedule.pk)})}"
+    )
 
 
 def salary_grade_export(request):
@@ -410,7 +476,7 @@ def salary_grade_export(request):
     if selected_grade and not selected_grade.isdigit():
         return HttpResponseBadRequest('Invalid salary grade.')
 
-    active_schedule = _active_salary_schedule()
+    active_schedule = _selected_salary_schedule(request)
     salary_grades = SalaryGrade.objects.none()
     if active_schedule:
         salary_grades = SalaryGrade.objects.filter(
@@ -432,7 +498,12 @@ def salary_grade_export(request):
         ])
 
     workbook = _salary_grade_workbook(rows)
-    filename = f"salary_grade_{timezone.localdate().isoformat()}.xlsx"
+    filename_suffix = (
+        active_schedule.effective_date.isoformat()
+        if active_schedule
+        else timezone.localdate().isoformat()
+    )
+    filename = f"salary_grade_{filename_suffix}.xlsx"
     response = HttpResponse(
         workbook,
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -463,7 +534,7 @@ def salary_grade_import(request):
     imported_count = 0
     skipped_count = 0
     with transaction.atomic():
-        active_schedule = _get_or_create_active_salary_schedule()
+        active_schedule = _selected_salary_schedule(request, create=True)
         for row in rows:
             salary_grade_item, _ = SalaryGrade.objects.get_or_create(
                 schedule=active_schedule,
@@ -485,8 +556,11 @@ def salary_grade_import(request):
                     skipped_count += 1
 
     return redirect(
-        f"{reverse('plantilla:salary_grade')}"
-        f"?imported={imported_count}&skipped={skipped_count}"
+        _salary_grade_url(
+            active_schedule,
+            imported=imported_count,
+            skipped=skipped_count,
+        )
     )
 
 

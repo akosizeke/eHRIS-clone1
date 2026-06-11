@@ -52,8 +52,11 @@
     <header class="page-header">
         <div>
             <h1>Salary Grade {{ salary_grade.grade_number }}</h1>
+            {% if active_schedule %}
+                <p class="muted">{{ active_schedule.name }} · Effective {{ active_schedule.effective_date }}</p>
+            {% endif %}
         </div>
-        <a class="button secondary" href="{% url 'plantilla:salary_grade' %}">Back</a>
+        <a class="button secondary" href="{% url 'plantilla:salary_grade' %}{% if active_schedule %}?schedule={{ active_schedule.pk }}{% endif %}">Back</a>
     </header>
 
     <section class="panel" aria-label="Salary grade steps">
@@ -74,7 +77,7 @@
                             <td>Step {{ step.step_number }}</td>
                             <td>
                                 {% if step.is_editable %}
-                                    <form id="salary-grade-step-{{ step.step_number }}-form" class="salary-grade-step-form" method="post" action="{% url 'plantilla:salary_grade_step_update' salary_grade.grade_number step.step_number %}">
+                                    <form id="salary-grade-step-{{ step.step_number }}-form" class="salary-grade-step-form" method="post" action="{% url 'plantilla:salary_grade_step_update' salary_grade.grade_number step.step_number %}{% if active_schedule %}?schedule={{ active_schedule.pk }}{% endif %}">
                                         {% csrf_token %}
                                         <span class="salary-grade-step-display">{{ step.amount }}</span>
                                         <input class="salary-grade-step-input" type="number" name="amount" min="1" value="{{ step.amount_value }}" required>

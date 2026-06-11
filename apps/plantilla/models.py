@@ -4,6 +4,7 @@ from django.db import models
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.db.models.functions import Lower
+from django.utils import timezone
 from apps.core.models import AbstractBaseModel
 from django.conf import settings
 
@@ -236,9 +237,19 @@ class SalarySchedule(models.Model):
         ordering = ["-effective_date", "name"]
         verbose_name = "Salary Schedule"
         verbose_name_plural = "Salary Schedules"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["effective_date"],
+                name="unique_salary_schedule_effective_date",
+            )
+        ]
 
     def __str__(self):
         return self.name
+
+    @property
+    def is_effective(self):
+        return self.is_active and self.effective_date <= timezone.localdate()
 
     def clean(self):
         if not self.name or not self.name.strip():

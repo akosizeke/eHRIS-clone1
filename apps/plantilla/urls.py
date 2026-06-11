@@ -10,6 +10,9 @@ urlpatterns = [
     path('', views.plantilla_list, name='list'),
     # Salary grade table placeholder page.
     path('salary-grade/', views.salary_grade, name='salary_grade'),
+    # Salary schedule management and version records.
+    path('salary-grade/schedules/', views.salary_schedule_list, name='salary_schedule_list'),
+    path('salary-grade/schedules/<uuid:schedule_id>/activate/', views.salary_schedule_activate, name='salary_schedule_activate'),
     # Blank salary grade detail page.
     path('salary-grade/<int:grade_number>/', views.salary_grade_detail, name='salary_grade_detail'),
     # Update one editable manual salary grade step.

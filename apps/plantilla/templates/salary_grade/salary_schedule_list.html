@@ -1,0 +1,163 @@
+{% extends "organization/base.html" %}
+
+{% block title %}Salary Schedule Management | eHRIS{% endblock %}
+
+{% block extra_head %}
+<style>
+    .salary-schedule-layout {
+        display: grid;
+        grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+        gap: 16px;
+        align-items: start;
+    }
+
+    .salary-schedule-form {
+        display: grid;
+        gap: 12px;
+    }
+
+    .salary-schedule-form label {
+        display: grid;
+        gap: 6px;
+    }
+
+    .salary-schedule-form .checkbox-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .salary-schedule-form .checkbox-label input {
+        width: auto;
+    }
+
+    .salary-schedule-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .salary-schedule-table th,
+    .salary-schedule-table td {
+        vertical-align: middle;
+    }
+
+    @media (max-width: 960px) {
+        .salary-schedule-layout {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="salary-grade-page">
+    <header class="page-header">
+        <div>
+            <h1>Salary Schedule Management</h1>
+            <p class="muted">Create and review salary grade tables by effective date.</p>
+        </div>
+        <a class="button secondary" href="{% url 'plantilla:salary_grade' %}">Back to Salary Grade</a>
+    </header>
+
+    {% if notice %}
+        <div class="notice">{{ notice }}</div>
+    {% endif %}
+
+    <div class="salary-schedule-layout">
+        <section class="panel" aria-label="Create salary schedule">
+            <h3>Add Schedule</h3>
+            <form class="salary-schedule-form" method="post">
+                {% csrf_token %}
+                {% if form.non_field_errors %}
+                    <div class="notice error">{{ form.non_field_errors }}</div>
+                {% endif %}
+
+                <label>
+                    Name
+                    {{ form.name }}
+                    {% for error in form.name.errors %}
+                        <span class="error">{{ error }}</span>
+                    {% endfor %}
+                </label>
+
+                <label>
+                    Effective Date
+                    {{ form.effective_date }}
+                    {% for error in form.effective_date.errors %}
+                        <span class="error">{{ error }}</span>
+                    {% endfor %}
+                </label>
+
+                <label>
+                    Description
+                    {{ form.description }}
+                    {% for error in form.description.errors %}
+                        <span class="error">{{ error }}</span>
+                    {% endfor %}
+                </label>
+
+                <button type="submit">Save Schedule</button>
+                <p class="muted">Schedules are enabled when saved. The current schedule is chosen automatically by effective date.</p>
+            </form>
+        </section>
+
+        <section class="panel" aria-label="Salary schedules">
+            <h3>Schedules</h3>
+            <div class="table-scroll">
+                <table class="salary-schedule-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Effective Date</th>
+                            <th>Grades</th>
+                            <th>Steps</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for schedule in schedules %}
+                            <tr>
+                                <td>
+                                    <strong>{{ schedule.name }}</strong>
+                                    {% if schedule.description %}
+                                        <div class="muted">{{ schedule.description }}</div>
+                                    {% endif %}
+                                </td>
+                                <td>{{ schedule.effective_date }}</td>
+                                <td>{{ schedule.grade_count }}</td>
+                                <td>{{ schedule.step_count }}</td>
+                                <td>
+                                    {% if schedule.is_effective %}
+                                        Effective
+                                    {% elif schedule.is_active %}
+                                        Scheduled
+                                    {% else %}
+                                        Inactive
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="salary-schedule-actions">
+                                        <a class="button secondary" href="{% url 'plantilla:salary_grade' %}?schedule={{ schedule.pk }}">View</a>
+                                        {% if not schedule.is_active %}
+                                            <form method="post" action="{% url 'plantilla:salary_schedule_activate' schedule.pk %}">
+                                                {% csrf_token %}
+                                                <button class="secondary" type="submit">Enable</button>
+                                            </form>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="6">No salary schedules yet.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+</div>
+{% endblock %}
