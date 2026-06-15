@@ -4,6 +4,7 @@ from django.db import models
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.db.models.functions import Lower
+from django.utils import timezone
 from apps.core.models import AbstractBaseModel
 from django.conf import settings
 
@@ -84,7 +85,7 @@ class Item(AbstractBaseModel):
         ]
 
     def __str__(self):
-        return f"{self.item_number} — {self.position_title}"
+        return f"{self.item_number} â€” {self.position_title}"
 
     def clean(self):
         super().clean()
@@ -329,45 +330,115 @@ class History(AbstractBaseModel):
         verbose_name_plural = 'Histories'
 
     def __str__(self):
-        return f"{self.plantilla_item} — {self.get_change_type_display()}"
+        return f"{self.plantilla_item} â€” {self.get_change_type_display()}"
 
-#CAMILLE CRISOSTOMO - 2024-06-17
-#SALARY GRADE MODEL FOR SALARY GRADE TABLE
+# Salary schedule is the version/container for one complete salary table.
+class SalarySchedule(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=150, unique=True)
+    description = models.TextField(blank=True, null=True)
+    effective_date = models.DateField()
+    is_active = models.BooleanField(default=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="created_salary_schedules",
+        null=True,
+        blank=True,
+    )
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="updated_salary_schedules",
+        null=True,
+        blank=True,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        db_table = "salary_schedule"
+        ordering = ["-effective_date", "name"]
+        verbose_name = "Salary Schedule"
+        verbose_name_plural = "Salary Schedules"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["effective_date"],
+                name="unique_salary_schedule_effective_date",
+            )
+        ]
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def is_effective(self):
+        return self.is_active and self.effective_date <= timezone.localdate()
+
+    def clean(self):
+        if not self.name or not self.name.strip():
+            raise ValidationError({"name": "Salary schedule name is required."})
 
 
 class SalaryGrade(models.Model):
     """
-    Represents the salary grade number.
-    Example: Salary Grade 1, Salary Grade 2, Salary Grade 33, Salary Grade 34.
+    Stores the salary grade number under a specific salary schedule.
+    Example: Salary Grade 1, Salary Grade 2, Salary Grade 33, Salary Grade 34, etc.
     """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    grade_number = models.PositiveIntegerField(unique=True, validators=[MinValueValidator(1)])
+    schedule = models.ForeignKey(
+        SalarySchedule,
+        on_delete=models.PROTECT,
+        related_name="salary_grades",
+    )
+    grade_number = models.PositiveIntegerField()
+    is_active = models.BooleanField(default=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="created_salary_grades",
+        null=True,
+        blank=True,
+    )
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="updated_salary_grades",
+        null=True,
+        blank=True,
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = "salary_grade"
-        ordering = ["grade_number"]
+        ordering = ["schedule", "grade_number"]
         verbose_name = "Salary Grade"
         verbose_name_plural = "Salary Grades"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["schedule", "grade_number"],
+                name="unique_salary_grade_per_schedule",
+            )
+        ]
 
     def __str__(self):
-        return f"Salary Grade {self.grade_number}"
+        return f"{self.schedule.name} - Salary Grade {self.grade_number}"
 
     def clean(self):
         if self.grade_number < 1:
             raise ValidationError({
-                "grade_number": "Salary grade must be greater than 0."
+                "grade_number": "Salary grade number must be greater than zero."
             })
 
 
 class SalaryGradeStep(models.Model):
     """
-    Represents one step amount inside a salary grade.
-    Example: Salary Grade 2 - Step 1 - 14900.
+    Stores each salary step amount.
+    Each salary grade has Step 1 to Step 8.
+    Each step has its own amount, source, and edit status.
     """
 
     class SourceType(models.TextChoices):
@@ -376,10 +447,24 @@ class SalaryGradeStep(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     salary_grade = models.ForeignKey(SalaryGrade, on_delete=models.PROTECT, related_name="steps")
-    step_number = models.PositiveSmallIntegerField(validators=[MinValueValidator(1),MaxValueValidator(8)])
-    amount = models.PositiveIntegerField(null=True, blank=True, validators=[MinValueValidator(1)])
+    step_number = models.PositiveSmallIntegerField()
+    amount = models.PositiveIntegerField()
     source = models.CharField(max_length=20, choices=SourceType.choices, default=SourceType.MANUAL)
-    imported_at = models.DateTimeField(null=True, blank=True)
+    is_editable = models.BooleanField(default=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="created_salary_grade_steps",
+        null=True,
+        blank=True,
+    )
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="updated_salary_grade_steps",
+        null=True,
+        blank=True,
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -398,27 +483,30 @@ class SalaryGradeStep(models.Model):
 
     def __str__(self):
         return (
-            f"Salary Grade {self.salary_grade.grade_number} - "
-            f"Step {self.step_number}"
+            f"Salary Grade {self.salary_grade.grade_number} "
+            f"- Step {self.step_number} - {self.amount}"
         )
 
     @property
     def is_locked(self):
-        """
-        Imported values are locked.
-        Manual values are editable.
-        """
-        return self.source == self.SourceType.IMPORTED
-
-    @property
-    def is_editable(self):
-        """
-        Used by the modal/UI to know if the step can be edited.
-        """
-        return self.source == self.SourceType.MANUAL
+        return not self.is_editable
 
     def clean(self):
         if self.step_number < 1 or self.step_number > 8:
             raise ValidationError({
                 "step_number": "Step number must be from 1 to 8 only."
             })
+
+        if self.amount is None or self.amount < 1:
+            raise ValidationError({
+                "amount": "Salary amount must be greater than zero."
+            })
+
+        self.is_editable = self.source == self.SourceType.MANUAL
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        update_fields = kwargs.get("update_fields")
+        if update_fields and "source" in update_fields:
+            kwargs["update_fields"] = set(update_fields) | {"is_editable"}
+        super().save(*args, **kwargs)
