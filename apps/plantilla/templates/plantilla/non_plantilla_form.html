@@ -39,13 +39,22 @@
         gap: 6px;
     }
 
-    /* Normalizes text and select inputs with square borders matching the module style. */
+    /* Normalizes text, select, and textarea inputs with square borders matching the module style. */
     .plantilla-form input,
-    .plantilla-form select {
+    .plantilla-form select,
+    .plantilla-form textarea {
         border: 1px solid #d1d5db;
         border-radius: 0;
         padding: 8px 10px;
         background: #fff;
+    }
+
+    .plantilla-form textarea {
+        min-height: 96px;
+    }
+
+    .plantilla-form .full {
+        grid-column: 1 / -1;
     }
 
     /* Places submit and cancel actions on one row below the form fields. */
@@ -102,7 +111,7 @@
     <header class="page-header">
         <div>
             <h1>{{ title }}</h1>
-            <p class="muted">Job Order and Casual employees.</p>
+            <p class="muted">Personnel engaged through job order, contract of service, casual, contractual, project-based, and other authorized arrangements.</p>
         </div>
         <a class="plantilla-button" href="{% url 'plantilla:list' %}?tab=non-plantilla">Back to Non-Plantilla</a>
     </header>
@@ -114,12 +123,12 @@
 
             {# Non-field errors show validation problems that apply to the full form. #}
             {% if form.non_field_errors %}
-                <div class="plantilla-error">{{ form.non_field_errors }}</div>
+                <div class="plantilla-error full">{{ form.non_field_errors }}</div>
             {% endif %}
 
             {# Form fields render labels, inputs, and field-specific validation errors. #}
             {% for field in form %}
-                <label>
+                <label class="field-{{ field.name }}{% if field.name == 'duties_responsibilities' %} full{% endif %}" data-field-name="{{ field.name }}">
                     {{ field.label }}
                     {{ field }}
                     {% for error in field.errors %}
@@ -136,4 +145,59 @@
         </form>
     </section>
 </div>
+<script>
+    const employeeTypeSelect = document.getElementById('id_employee_type');
+    const conditionalFields = {
+        JOB_ORDER: ['compensation_rate', 'rate_basis'],
+        CONTRACT_OF_SERVICE: ['compensation_rate', 'rate_basis'],
+        CASUAL: ['salary_grade', 'salary_step'],
+        CONTRACTUAL: ['salary_grade', 'salary_step'],
+        PROJECT_BASED: ['salary_grade', 'salary_step'],
+        TEMPORARY: ['salary_grade', 'salary_step'],
+        SUBSTITUTE: ['salary_grade', 'salary_step'],
+        OUTSOURCED_PERSONNEL: ['service_provider'],
+        CONSULTANT: ['consultancy_title', 'contract_amount'],
+        EMERGENCY_WORKER: ['work_assignment'],
+    };
+    const alwaysVisibleFields = [
+        'name',
+        'employee_type',
+        'office',
+        'position_title',
+        'funding_source',
+        'reference_number',
+        'duties_responsibilities',
+        'duration_value',
+        'duration_unit',
+        'start_date',
+        'end_date',
+    ];
+
+    function updateConditionalFields() {
+        if (!employeeTypeSelect) {
+            return;
+        }
+
+        const visibleFields = new Set([
+            ...alwaysVisibleFields,
+            ...(conditionalFields[employeeTypeSelect.value] || []),
+        ]);
+
+        document.querySelectorAll('[data-field-name]').forEach((fieldWrapper) => {
+            const fieldName = fieldWrapper.dataset.fieldName;
+            const fieldControl = fieldWrapper.querySelector('input, select, textarea');
+            const shouldShow = visibleFields.has(fieldName);
+
+            fieldWrapper.hidden = !shouldShow;
+            if (fieldControl) {
+                fieldControl.disabled = !shouldShow;
+            }
+        });
+    }
+
+    if (employeeTypeSelect) {
+        employeeTypeSelect.addEventListener('change', updateConditionalFields);
+        updateConditionalFields();
+    }
+</script>
 {% endblock %}

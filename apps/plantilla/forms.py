@@ -16,6 +16,7 @@ class ItemForm(forms.ModelForm):
             'item_number',
             'employee_name',
             'position_title',
+            'appointment_type',
             'salary_grade',
             'salary_step',
             'office',
@@ -90,6 +91,7 @@ class ItemForm(forms.ModelForm):
         self.fields['item_number'].widget.attrs['placeholder'] = 'Example: HRMO-001'
         self.fields['employee_name'].widget.attrs['placeholder'] = 'Leave blank for vacant or abolished positions'
         self.fields['position_title'].widget.attrs['placeholder'] = 'Example: Administrative Officer IV'
+        self.fields['appointment_type'].empty_label = None
         self.fields['duties_responsibilities'].widget.attrs['placeholder'] = 'Summarize the position duties and responsibilities'
         if not use_salary_grade_controls:
             self.fields['salary_grade'].widget.attrs['min'] = '1'
@@ -103,12 +105,24 @@ class ItemForm(forms.ModelForm):
         cleaned_data = super().clean()
         status = cleaned_data.get('position_status')
         employee_name = cleaned_data.get('employee_name', '')
+        salary_grade = cleaned_data.get('salary_grade')
+        salary_step = cleaned_data.get('salary_step')
 
         if status == 'filled' and not employee_name.strip():
             self.add_error('employee_name', 'Filled positions require an employee name.')
 
         if status in {'vacant', 'abolished'}:
             cleaned_data['employee_name'] = ''
+
+        if salary_step:
+            if not salary_grade:
+                self.add_error('salary_step', 'Select a salary grade before selecting a salary step.')
+            elif not SalaryGradeStep.objects.filter(
+                salary_grade__grade_number=salary_grade,
+                step_number=salary_step,
+                amount__isnull=False,
+            ).exists():
+                self.add_error('salary_step', 'Select a valid salary step for the selected salary grade.')
 
         return cleaned_data
 
@@ -121,10 +135,22 @@ class NonPlantillaEmployeeForm(forms.ModelForm):
             'name',
             'employee_type',
             'office',
+            'position_title',
+            'funding_source',
+            'reference_number',
+            'duties_responsibilities',
             'duration_value',
             'duration_unit',
             'start_date',
             'end_date',
+            'compensation_rate',
+            'rate_basis',
+            'salary_grade',
+            'salary_step',
+            'service_provider',
+            'consultancy_title',
+            'contract_amount',
+            'work_assignment',
         ]
 
     def __init__(self, *args, **kwargs):
@@ -137,6 +163,19 @@ class NonPlantillaEmployeeForm(forms.ModelForm):
             field.widget.attrs['class'] = 'org-form-control'
 
         self.fields['name'].widget.attrs['placeholder'] = 'Employee name'
+        self.fields['position_title'].label = 'Position or Service Title'
+        self.fields['position_title'].widget.attrs['placeholder'] = 'Position or service title'
+        self.fields['funding_source'].widget.attrs['placeholder'] = 'Funding source'
+        self.fields['reference_number'].label = 'Appointment, Contract, or Reference Number'
+        self.fields['reference_number'].widget.attrs['placeholder'] = 'Reference number'
+        self.fields['duties_responsibilities'].label = 'Duties or Scope of Work'
+        self.fields['duties_responsibilities'].widget = forms.Textarea(
+            attrs={
+                'class': 'org-form-control',
+                'placeholder': 'Summarize duties or scope of work',
+                'rows': 4,
+            }
+        )
         self.fields['duration_value'].widget.attrs['min'] = '1'
         self.fields['duration_value'].widget.attrs['placeholder'] = 'Duration'
         self.fields['start_date'].widget = forms.DateInput(
@@ -145,3 +184,15 @@ class NonPlantillaEmployeeForm(forms.ModelForm):
         self.fields['end_date'].widget = forms.DateInput(
             attrs={'type': 'date', 'class': 'org-form-control'}
         )
+        self.fields['compensation_rate'].widget.attrs['min'] = '0'
+        self.fields['compensation_rate'].widget.attrs['step'] = '0.01'
+        self.fields['contract_amount'].widget.attrs['min'] = '0'
+        self.fields['contract_amount'].widget.attrs['step'] = '0.01'
+        self.fields['salary_grade'].widget.attrs['min'] = '1'
+        self.fields['salary_grade'].widget.attrs['max'] = '33'
+        self.fields['salary_step'].widget.attrs['min'] = '1'
+        self.fields['salary_step'].widget.attrs['max'] = '8'
+        self.fields['service_provider'].widget.attrs['placeholder'] = 'Service provider'
+        self.fields['consultancy_title'].widget.attrs['placeholder'] = 'Consultancy title'
+        self.fields['work_assignment'].label = 'Work Assignment or Emergency Assignment'
+        self.fields['work_assignment'].widget.attrs['placeholder'] = 'Work or emergency assignment'

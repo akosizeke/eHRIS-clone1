@@ -10,10 +10,11 @@ class ItemAdmin(admin.ModelAdmin):
         'employee_name',
         'position_title',
         'office',
+        'appointment_type',
         'salary_grade',
         'position_status',
     )
-    list_filter = ('employment_type', 'position_status', 'salary_grade', 'office')
+    list_filter = ('employment_type', 'appointment_type', 'position_status', 'salary_grade', 'office')
     search_fields = ('item_number', 'employee_name', 'position_title', 'office__name')
     readonly_fields = ('id', 'created_at', 'modified_at')
 
@@ -24,6 +25,8 @@ class NonPlantillaEmployeeAdmin(admin.ModelAdmin):
         'name',
         'employee_type',
         'office',
+        'position_title',
+        'reference_number',
         'duration_value',
         'duration_unit',
         'start_date',

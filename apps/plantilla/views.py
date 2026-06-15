@@ -27,6 +27,7 @@ def _item_payload(item):
         'item_number': item.item_number,
         'employee_name': item.employee_name,
         'position_title': item.position_title,
+        'appointment_type': item.appointment_type,
         'salary_grade': item.salary_grade,
         'office_id': str(item.office_id),
         'employment_type': item.employment_type,
@@ -45,11 +46,23 @@ def _non_plantilla_payload(employee):
         'name': employee.name,
         'employee_type': employee.employee_type,
         'office_id': str(employee.office_id),
+        'position_title': employee.position_title,
+        'funding_source': employee.funding_source,
+        'reference_number': employee.reference_number,
+        'duties_responsibilities': employee.duties_responsibilities,
         'duration': employee.duration_display,
         'duration_value': employee.duration_value,
         'duration_unit': employee.duration_unit,
         'start_date': employee.start_date.isoformat(),
         'end_date': employee.end_date.isoformat() if employee.end_date else None,
+        'compensation_rate': str(employee.compensation_rate) if employee.compensation_rate is not None else None,
+        'rate_basis': employee.rate_basis,
+        'salary_grade': employee.salary_grade,
+        'salary_step': employee.salary_step,
+        'service_provider': employee.service_provider,
+        'consultancy_title': employee.consultancy_title,
+        'contract_amount': str(employee.contract_amount) if employee.contract_amount is not None else None,
+        'work_assignment': employee.work_assignment,
         'eligible_for_permanent': employee.eligible_for_permanent,
         'created_at': employee.created_at.isoformat(),
         'modified_at': employee.modified_at.isoformat(),
@@ -84,16 +97,21 @@ def plantilla_list(request):
     search = request.GET.get('q', '').strip()
     office_id = request.GET.get('office', '').strip()
     position_status = request.GET.get('status', '').strip()
+    appointment_type = request.GET.get('appointment_type', '').strip()
     salary_grade = request.GET.get('sg', '').strip()
     non_plantilla_type = request.GET.get('type', '').strip()
 
     allowed_statuses = {value for value, _ in Item.POSITION_STATUS_CHOICES}
+    allowed_appointment_types = {value for value, _ in Item.AppointmentType.choices}
     allowed_non_plantilla_types = {
         value for value, _ in NonPlantillaEmployee.EMPLOYEE_TYPE_CHOICES
     }
 
     if position_status and position_status not in allowed_statuses:
         return HttpResponseBadRequest('Invalid position status.')
+
+    if appointment_type and appointment_type not in allowed_appointment_types:
+        return HttpResponseBadRequest('Invalid appointment type.')
 
     if salary_grade and not salary_grade.isdigit():
         return HttpResponseBadRequest('Invalid salary grade.')
@@ -125,6 +143,8 @@ def plantilla_list(request):
         filtered_items = filtered_items.filter(office_id=office_id)
     if position_status:
         filtered_items = filtered_items.filter(position_status=position_status)
+    if appointment_type:
+        filtered_items = filtered_items.filter(appointment_type=appointment_type)
     if salary_grade:
         filtered_items = filtered_items.filter(salary_grade=int(salary_grade))
 
@@ -161,10 +181,12 @@ def plantilla_list(request):
         'search': search,
         'office_id': office_id,
         'position_status': position_status,
+        'appointment_type': appointment_type,
         'salary_grade': salary_grade,
         'salary_grades': SalaryGrade.objects.values_list('grade_number', flat=True).order_by('grade_number'),
         'non_plantilla_type': non_plantilla_type,
         'position_status_choices': Item.POSITION_STATUS_CHOICES,
+        'appointment_type_choices': Item.AppointmentType.choices,
         'non_plantilla_type_choices': NonPlantillaEmployee.EMPLOYEE_TYPE_CHOICES,
     })
 
@@ -480,7 +502,8 @@ def plantilla_create(request):
 
         form = ItemForm(data, use_salary_grade_controls=True)
         if form.is_valid():
-            item = form.save()
+            with transaction.atomic():
+                item = form.save()
             if _request_wants_json(request):
                 return JsonResponse(_item_payload(item), status=201)
             return redirect(f"{reverse('plantilla:list')}?tab=plantilla")
@@ -515,12 +538,13 @@ def plantilla_update(request, pk):
         data = data.copy()
         data['employment_type'] = 'permanent'
         data['funding_source'] = item.funding_source
-        form = ItemForm(data, instance=item)
+        form = ItemForm(data, instance=item, use_salary_grade_controls=True)
         if form.is_valid():
-            form.save()
+            with transaction.atomic():
+                form.save()
             return redirect(f"{reverse('plantilla:list')}?tab=plantilla")
     else:
-        form = ItemForm(instance=item)
+        form = ItemForm(instance=item, use_salary_grade_controls=True)
 
     _prepare_permanent_form(form)
 
@@ -535,7 +559,8 @@ def non_plantilla_create(request):
     if request.method == 'POST':
         form = NonPlantillaEmployeeForm(request.POST)
         if form.is_valid():
-            form.save()
+            with transaction.atomic():
+                form.save()
             return redirect(f"{reverse('plantilla:list')}?tab=non-plantilla")
     else:
         form = NonPlantillaEmployeeForm()
@@ -553,7 +578,8 @@ def non_plantilla_update(request, pk):
     if request.method == 'POST':
         form = NonPlantillaEmployeeForm(request.POST, instance=employee)
         if form.is_valid():
-            form.save()
+            with transaction.atomic():
+                form.save()
             return redirect(f"{reverse('plantilla:list')}?tab=non-plantilla")
     else:
         form = NonPlantillaEmployeeForm(instance=employee)

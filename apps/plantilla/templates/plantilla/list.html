@@ -253,14 +253,14 @@
     <header class="page-header">
         <div>
             <h1>Plantilla</h1>
-            <p class="muted">Offices, permanent plantilla positions, and non-plantilla employees.</p>
+            <p class="muted">Offices, authorized plantilla positions, and non-plantilla employees.</p>
         </div>
     </header>
 
-    {# Tabs switch between office summaries, permanent plantilla positions, and non-plantilla employees. #}
+    {# Tabs switch between office summaries, plantilla positions, and non-plantilla employees. #}
     <nav class="plantilla-tabs" aria-label="Plantilla tabs">
         <a class="plantilla-tab {% if active_tab == 'offices' %}is-active{% endif %}" href="{% url 'plantilla:list' %}?tab=offices">Offices</a>
-        <a class="plantilla-tab {% if active_tab == 'plantilla' %}is-active{% endif %}" href="{% url 'plantilla:list' %}?tab=plantilla">Plantilla (Permanent)</a>
+        <a class="plantilla-tab {% if active_tab == 'plantilla' %}is-active{% endif %}" href="{% url 'plantilla:list' %}?tab=plantilla">Plantilla</a>
         <a class="plantilla-tab {% if active_tab == 'non-plantilla' %}is-active{% endif %}" href="{% url 'plantilla:list' %}?tab=non-plantilla">Non-Plantilla</a>
     </nav>
 
@@ -275,7 +275,7 @@
                 </div>
             </form>
 
-            {# Office table lists counts and expandable permanent position summaries per office. #}
+            {# Office table lists counts and expandable plantilla position summaries per office. #}
             <div class="table-scroll">
                 <table class="plantilla-table">
                     <thead>
@@ -308,7 +308,7 @@
                                     <a class="plantilla-button" href="{% url 'plantilla:list' %}?tab=plantilla&office={{ row.office.pk }}">View Plantilla</a>
                                 </td>
                             </tr>
-                            {# Hidden detail row contains permanent positions assigned to the office. #}
+                            {# Hidden detail row contains plantilla positions assigned to the office. #}
                             <tr id="office-{{ row.office.pk }}" class="plantilla-positions-row">
                                 <td></td>
                                 <td colspan="6">
@@ -319,15 +319,15 @@
                                                 <div class="plantilla-position-item">
                                                     <span>
                                                         <strong>{{ item.position_title }}</strong>
-                                                        <span class="plantilla-muted">SG {{ item.salary_grade }} · {{ item.item_number }}</span>
+                                                        <span class="plantilla-muted">SG {{ item.salary_grade }} - {{ item.item_number }} - {{ item.get_appointment_type_display }}</span>
                                                     </span>
                                                     <span class="badge status-{{ item.position_status }}">{{ item.get_position_status_display }}</span>
                                                 </div>
                                             {% endfor %}
                                         </div>
                                     {% else %}
-                                        {# Empty state explains that the expanded office has no permanent positions. #}
-                                        <div class="plantilla-empty">No permanent plantilla positions in this office.</div>
+                                        {# Empty state explains that the expanded office has no plantilla positions. #}
+                                        <div class="plantilla-empty">No plantilla positions in this office.</div>
                                     {% endif %}
                                 </td>
                             </tr>
@@ -342,7 +342,7 @@
             </div>
         </section>
     {% elif active_tab == 'plantilla' %}
-        {# Permanent plantilla tab lists all permanent position items with filters. #}
+        {# Plantilla tab lists all position items with filters. #}
         <section class="plantilla-panel">
             {# Toolbar combines position filters with the add-position action. #}
             <div class="plantilla-toolbar">
@@ -361,6 +361,12 @@
                             <option value="{{ value }}" {% if position_status == value %}selected{% endif %}>{{ label }}</option>
                         {% endfor %}
                     </select>
+                    <select name="appointment_type" aria-label="Filter by appointment type">
+                        <option value="">All Appointment Types</option>
+                        {% for value, label in appointment_type_choices %}
+                            <option value="{{ value }}" {% if appointment_type == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
                     <select name="sg" aria-label="Filter by salary grade">
                         <option value="">All SG levels</option>
                         {% for sg in salary_grades %}
@@ -371,7 +377,7 @@
                 <a class="plantilla-button primary" href="{% url 'plantilla:create' %}">+ Add Position</a>
             </div>
 
-            {# Permanent position table shows employee assignment, office, grade, status, and actions. #}
+            {# Position table shows employee assignment, office, grade, appointment type, status, and actions. #}
             <div class="table-scroll">
                 <table class="plantilla-table">
                     <thead>
@@ -379,6 +385,7 @@
                             <th>Name</th>
                             <th>Position Title</th>
                             <th>Office</th>
+                            <th>Appointment Type</th>
                             <th>SG</th>
                             <th>Status</th>
                             <th>Duties &amp; Responsibilities</th>
@@ -400,15 +407,16 @@
                                 </td>
                                 <td>{{ item.position_title }}</td>
                                 <td>{{ item.office.name }}</td>
+                                <td>{{ item.get_appointment_type_display }}</td>
                                 <td>{{ item.salary_grade }}</td>
                                 <td><span class="badge status-{{ item.position_status }}">{{ item.get_position_status_display }}</span></td>
                                 <td><a class="plantilla-button" href="{% url 'plantilla:detail' item.pk %}">View</a></td>
                                 <td><a class="plantilla-button" href="{% url 'plantilla:edit' item.pk %}">Edit</a></td>
                             </tr>
                         {% empty %}
-                            {# Empty state appears when no permanent plantilla rows match the filters. #}
+                            {# Empty state appears when no plantilla rows match the filters. #}
                             <tr>
-                                <td colspan="7" class="plantilla-empty">No permanent plantilla positions found.</td>
+                                <td colspan="8" class="plantilla-empty">No plantilla positions found.</td>
                             </tr>
                         {% endfor %}
                     </tbody>

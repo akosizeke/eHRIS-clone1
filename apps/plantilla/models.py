@@ -1,3 +1,5 @@
+import uuid
+
 from django.db import models
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
@@ -14,6 +16,12 @@ item_number_validator = RegexValidator(
 
 # Plantilla position item linked to an office and optional legal basis.
 class Item(AbstractBaseModel):
+    class AppointmentType(models.TextChoices):
+        PERMANENT = 'PERMANENT', 'Permanent'
+        COTERMINOUS_ELECTIVE = (
+            'COTERMINOUS_ELECTIVE',
+            'Coterminous / Elective Official',
+        )
 
     # Employment category choices shown in plantilla forms and filters.
     EMPLOYMENT_TYPE_CHOICES = [
@@ -40,6 +48,11 @@ class Item(AbstractBaseModel):
     item_number     = models.CharField(max_length=50, unique=True, validators=[item_number_validator])
     employee_name   = models.CharField(max_length=255, blank=True, default='')
     position_title  = models.CharField(max_length=255)
+    appointment_type = models.CharField(
+        max_length=30,
+        choices=AppointmentType.choices,
+        default=AppointmentType.PERMANENT,
+    )
     salary_grade    = models.PositiveIntegerField(validators=[MinValueValidator(1), MaxValueValidator(33)])
     employment_type = models.CharField(max_length=20, choices=EMPLOYMENT_TYPE_CHOICES)
     funding_source  = models.CharField(max_length=10, choices=FUNDING_SOURCE_CHOICES)
@@ -112,24 +125,89 @@ class Item(AbstractBaseModel):
 
 # Non-plantilla employees such as Job Order and Casual personnel.
 class NonPlantillaEmployee(AbstractBaseModel):
+    class EmployeeType(models.TextChoices):
+        JOB_ORDER = 'JOB_ORDER', 'Job Order'
+        CONTRACT_OF_SERVICE = 'CONTRACT_OF_SERVICE', 'Contract of Service'
+        CASUAL = 'CASUAL', 'Casual'
+        CONTRACTUAL = 'CONTRACTUAL', 'Contractual'
+        PROJECT_BASED = 'PROJECT_BASED', 'Project-Based'
+        TEMPORARY = 'TEMPORARY', 'Temporary'
+        EMERGENCY_WORKER = 'EMERGENCY_WORKER', 'Emergency Worker'
+        SUBSTITUTE = 'SUBSTITUTE', 'Substitute'
+        OUTSOURCED_PERSONNEL = 'OUTSOURCED_PERSONNEL', 'Outsourced Personnel'
+        CONSULTANT = 'CONSULTANT', 'Consultant'
 
-    EMPLOYEE_TYPE_CHOICES = [
-        ('JO', 'Job Order'),
-        ('casual', 'Casual'),
-    ]
+    class RateBasis(models.TextChoices):
+        DAILY = 'DAILY', 'Daily'
+        MONTHLY = 'MONTHLY', 'Monthly'
+        LUMP_SUM = 'LUMP_SUM', 'Lump Sum'
+        PER_DELIVERABLE = 'PER_DELIVERABLE', 'Per Deliverable'
+
+    EMPLOYEE_TYPE_CHOICES = EmployeeType.choices
 
     DURATION_UNIT_CHOICES = [
+        ('days', 'Days'),
+        ('weeks', 'Weeks'),
         ('months', 'Months'),
         ('years', 'Years'),
     ]
 
+    COMPENSATION_TYPES = {
+        EmployeeType.JOB_ORDER,
+        EmployeeType.CONTRACT_OF_SERVICE,
+    }
+    SALARY_GRADE_TYPES = {
+        EmployeeType.CASUAL,
+        EmployeeType.CONTRACTUAL,
+        EmployeeType.TEMPORARY,
+        EmployeeType.SUBSTITUTE,
+        EmployeeType.PROJECT_BASED,
+    }
+
     name           = models.CharField(max_length=255)
-    employee_type  = models.CharField(max_length=20, choices=EMPLOYEE_TYPE_CHOICES)
+    employee_type  = models.CharField(max_length=30, choices=EMPLOYEE_TYPE_CHOICES)
     office         = models.ForeignKey('organization.Office', on_delete=models.PROTECT, related_name='non_plantilla_employees')
     duration_value = models.PositiveIntegerField(validators=[MinValueValidator(1)])
     duration_unit  = models.CharField(max_length=10, choices=DURATION_UNIT_CHOICES, default='months')
     start_date     = models.DateField()
     end_date       = models.DateField(null=True, blank=True)
+    position_title = models.CharField(max_length=255, blank=True, default='')
+    funding_source = models.CharField(max_length=255, blank=True, default='')
+    reference_number = models.CharField(max_length=100, blank=True, default='')
+    duties_responsibilities = models.TextField(blank=True, default='')
+    compensation_rate = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0)],
+    )
+    rate_basis = models.CharField(
+        max_length=20,
+        choices=RateBasis.choices,
+        blank=True,
+        default='',
+    )
+    salary_grade = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(1), MaxValueValidator(33)],
+    )
+    salary_step = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(1), MaxValueValidator(8)],
+    )
+    service_provider = models.CharField(max_length=255, blank=True, default='')
+    consultancy_title = models.CharField(max_length=255, blank=True, default='')
+    contract_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0)],
+    )
+    work_assignment = models.CharField(max_length=255, blank=True, default='')
 
     class Meta:
         ordering = ['name']
@@ -154,6 +232,10 @@ class NonPlantillaEmployee(AbstractBaseModel):
     def service_months(self):
         if self.duration_unit == 'years':
             return self.duration_value * 12
+        if self.duration_unit == 'weeks':
+            return self.duration_value // 4
+        if self.duration_unit == 'days':
+            return self.duration_value // 30
         return self.duration_value
 
     @property
@@ -165,9 +247,53 @@ class NonPlantillaEmployee(AbstractBaseModel):
         errors = {}
 
         self.name = self.name.strip() if self.name else self.name
+        self.position_title = self.position_title.strip() if self.position_title else ''
+        self.funding_source = self.funding_source.strip() if self.funding_source else ''
+        self.reference_number = self.reference_number.strip() if self.reference_number else ''
+        self.duties_responsibilities = (
+            self.duties_responsibilities.strip()
+            if self.duties_responsibilities
+            else ''
+        )
+        self.service_provider = self.service_provider.strip() if self.service_provider else ''
+        self.consultancy_title = self.consultancy_title.strip() if self.consultancy_title else ''
+        self.work_assignment = self.work_assignment.strip() if self.work_assignment else ''
 
         if self.end_date and self.start_date and self.end_date < self.start_date:
             errors['end_date'] = ['End date cannot be earlier than start date.']
+
+        if self.employee_type in self.COMPENSATION_TYPES:
+            if self.compensation_rate is None:
+                errors['compensation_rate'] = ['Compensation rate is required for this employee type.']
+            if not self.rate_basis:
+                errors['rate_basis'] = ['Rate basis is required for this employee type.']
+
+        if self.employee_type in self.SALARY_GRADE_TYPES:
+            if self.salary_grade is None:
+                errors['salary_grade'] = ['Salary grade is required for this employee type.']
+            if self.salary_step is None:
+                errors['salary_step'] = ['Salary step is required for this employee type.']
+
+        if self.employee_type == self.EmployeeType.OUTSOURCED_PERSONNEL and not self.service_provider:
+            errors['service_provider'] = ['Service provider is required for outsourced personnel.']
+
+        if self.employee_type == self.EmployeeType.CONSULTANT:
+            if not self.consultancy_title:
+                errors['consultancy_title'] = ['Consultancy title is required for consultants.']
+            if self.contract_amount is None:
+                errors['contract_amount'] = ['Contract amount is required for consultants.']
+
+        if self.employee_type == self.EmployeeType.EMERGENCY_WORKER and not self.work_assignment:
+            errors['work_assignment'] = ['Work assignment is required for emergency workers.']
+
+        if self.reference_number:
+            duplicate_reference = NonPlantillaEmployee.objects.filter(
+                reference_number__iexact=self.reference_number,
+            )
+            if self.pk:
+                duplicate_reference = duplicate_reference.exclude(pk=self.pk)
+            if duplicate_reference.exists():
+                errors['reference_number'] = ['Reference number already exists.']
 
         if errors:
             raise ValidationError(errors)
@@ -216,6 +342,7 @@ class SalaryGrade(models.Model):
     Example: Salary Grade 1, Salary Grade 2, Salary Grade 33, Salary Grade 34.
     """
 
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     grade_number = models.PositiveIntegerField(unique=True, validators=[MinValueValidator(1)])
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -247,6 +374,7 @@ class SalaryGradeStep(models.Model):
         MANUAL = "manual", "Manual"
         IMPORTED = "imported", "Imported"
 
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     salary_grade = models.ForeignKey(SalaryGrade, on_delete=models.PROTECT, related_name="steps")
     step_number = models.PositiveSmallIntegerField(validators=[MinValueValidator(1),MaxValueValidator(8)])
     amount = models.PositiveIntegerField(null=True, blank=True, validators=[MinValueValidator(1)])
