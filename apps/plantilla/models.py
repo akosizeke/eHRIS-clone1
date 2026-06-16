@@ -164,6 +164,31 @@ class NonPlantillaEmployee(AbstractBaseModel):
         EmployeeType.SUBSTITUTE,
         EmployeeType.PROJECT_BASED,
     }
+    COMMON_FORM_FIELDS = (
+        'name',
+        'employee_type',
+        'office',
+        'position_title',
+        'funding_source',
+        'reference_number',
+        'duties_responsibilities',
+        'duration_value',
+        'duration_unit',
+        'start_date',
+        'end_date',
+    )
+    CONDITIONAL_FIELD_GROUPS = {
+        EmployeeType.JOB_ORDER: ('compensation_rate', 'rate_basis'),
+        EmployeeType.CONTRACT_OF_SERVICE: ('compensation_rate', 'rate_basis'),
+        EmployeeType.CASUAL: ('salary_grade', 'salary_step'),
+        EmployeeType.CONTRACTUAL: ('salary_grade', 'salary_step'),
+        EmployeeType.PROJECT_BASED: ('salary_grade', 'salary_step'),
+        EmployeeType.TEMPORARY: ('salary_grade', 'salary_step'),
+        EmployeeType.SUBSTITUTE: ('salary_grade', 'salary_step'),
+        EmployeeType.OUTSOURCED_PERSONNEL: ('service_provider',),
+        EmployeeType.CONSULTANT: ('consultancy_title', 'contract_amount'),
+        EmployeeType.EMERGENCY_WORKER: ('work_assignment',),
+    }
 
     name           = models.CharField(max_length=255)
     employee_type  = models.CharField(max_length=30, choices=EMPLOYEE_TYPE_CHOICES)
@@ -222,6 +247,29 @@ class NonPlantillaEmployee(AbstractBaseModel):
     def __str__(self):
         return f"{self.name} - {self.get_employee_type_display()}"
 
+    @classmethod
+    def conditional_fields_for(cls, employee_type):
+        return cls.CONDITIONAL_FIELD_GROUPS.get(employee_type, ())
+
+    @classmethod
+    def all_conditional_fields(cls):
+        field_names = []
+        for fields in cls.CONDITIONAL_FIELD_GROUPS.values():
+            for field_name in fields:
+                if field_name not in field_names:
+                    field_names.append(field_name)
+        return tuple(field_names)
+
+    def _empty_value_for_field(self, field_name):
+        model_field = self._meta.get_field(field_name)
+        return None if model_field.null else ''
+
+    def _clear_inactive_conditional_fields(self):
+        active_fields = set(self.conditional_fields_for(self.employee_type))
+        for field_name in self.all_conditional_fields():
+            if field_name not in active_fields:
+                setattr(self, field_name, self._empty_value_for_field(field_name))
+
     @property
     def duration_display(self):
         unit = 'month' if self.duration_value == 1 and self.duration_unit == 'months' else self.duration_unit
@@ -259,6 +307,7 @@ class NonPlantillaEmployee(AbstractBaseModel):
         self.service_provider = self.service_provider.strip() if self.service_provider else ''
         self.consultancy_title = self.consultancy_title.strip() if self.consultancy_title else ''
         self.work_assignment = self.work_assignment.strip() if self.work_assignment else ''
+        self._clear_inactive_conditional_fields()
 
         if self.end_date and self.start_date and self.end_date < self.start_date:
             errors['end_date'] = ['End date cannot be earlier than start date.']

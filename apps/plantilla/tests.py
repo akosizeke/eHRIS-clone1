@@ -8,7 +8,13 @@ from django.urls import reverse
 from apps.organization.models import Office, Organization
 
 from .forms import ItemForm, NonPlantillaEmployeeForm
-from .models import Item, NonPlantillaEmployee
+from .models import (
+    Item,
+    NonPlantillaEmployee,
+    SalaryGrade,
+    SalaryGradeStep,
+    SalarySchedule,
+)
 
 
 class PlantillaValidationTests(TestCase):
@@ -26,6 +32,29 @@ class PlantillaValidationTests(TestCase):
             office_code='HRMO',
             office_type=Office.OfficeType.DEPARTMENT,
         )
+        self.salary_schedule = SalarySchedule.objects.create(
+            name='Test SSL',
+            effective_date=date(2025, 1, 1),
+            is_active=True,
+        )
+        for grade_number, step_numbers in {
+            4: [1],
+            5: [3],
+            7: [1],
+            8: [2],
+            12: [1],
+            15: [1],
+        }.items():
+            salary_grade = SalaryGrade.objects.create(
+                schedule=self.salary_schedule,
+                grade_number=grade_number,
+            )
+            for step_number in step_numbers:
+                SalaryGradeStep.objects.create(
+                    salary_grade=salary_grade,
+                    step_number=step_number,
+                    amount=10000 + grade_number + step_number,
+                )
         self.payload = {
             'item_number': 'hrmo-001',
             'position_title': 'Administrative Officer IV',
@@ -303,6 +332,16 @@ class PlantillaValidationTests(TestCase):
 
         self.assertEqual(employee.employee_type, NonPlantillaEmployee.EmployeeType.CASUAL)
 
+    def test_casual_salary_grade_must_exist_in_salary_table(self):
+        form = NonPlantillaEmployeeForm(data=self.non_plantilla_payload(
+            NonPlantillaEmployee.EmployeeType.CASUAL,
+            salary_grade=4,
+            salary_step=8,
+        ))
+
+        self.assertFalse(form.is_valid())
+        self.assertIn('salary_step', form.errors)
+
     def test_create_contractual_record(self):
         employee = self.assert_non_plantilla_form_valid(
             NonPlantillaEmployee.EmployeeType.CONTRACTUAL,
@@ -378,6 +417,51 @@ class PlantillaValidationTests(TestCase):
 
         self.assertFalse(form.is_valid())
         self.assertIn('employee_type', form.errors)
+
+    def test_non_plantilla_ignores_invalid_inactive_conditional_fields(self):
+        form = NonPlantillaEmployeeForm(data=self.non_plantilla_payload(
+            NonPlantillaEmployee.EmployeeType.JOB_ORDER,
+            compensation_rate='750.00',
+            rate_basis=NonPlantillaEmployee.RateBasis.DAILY,
+            salary_grade='invalid',
+            salary_step='invalid',
+        ))
+
+        self.assertTrue(form.is_valid(), form.errors)
+        employee = form.save()
+        self.assertIsNone(employee.salary_grade)
+        self.assertIsNone(employee.salary_step)
+
+    def test_non_plantilla_clears_stale_fields_when_type_changes(self):
+        employee = NonPlantillaEmployee.objects.create(
+            name='Casual Employee',
+            employee_type=NonPlantillaEmployee.EmployeeType.CASUAL,
+            office=self.office,
+            duration_value=6,
+            duration_unit='months',
+            start_date=date(2026, 1, 1),
+            salary_grade=4,
+            salary_step=1,
+        )
+        form = NonPlantillaEmployeeForm(
+            data=self.non_plantilla_payload(
+                NonPlantillaEmployee.EmployeeType.JOB_ORDER,
+                name=employee.name,
+                compensation_rate='750.00',
+                rate_basis=NonPlantillaEmployee.RateBasis.DAILY,
+                salary_grade=employee.salary_grade,
+                salary_step=employee.salary_step,
+            ),
+            instance=employee,
+        )
+
+        self.assertTrue(form.is_valid(), form.errors)
+        updated_employee = form.save()
+        self.assertEqual(updated_employee.employee_type, NonPlantillaEmployee.EmployeeType.JOB_ORDER)
+        self.assertEqual(updated_employee.compensation_rate, 750)
+        self.assertEqual(updated_employee.rate_basis, NonPlantillaEmployee.RateBasis.DAILY)
+        self.assertIsNone(updated_employee.salary_grade)
+        self.assertIsNone(updated_employee.salary_step)
 
     def test_existing_job_order_and_casual_canonical_values_remain_valid(self):
         job_order = self.assert_non_plantilla_form_valid(

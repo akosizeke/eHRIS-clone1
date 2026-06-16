@@ -126,15 +126,27 @@
                 <div class="plantilla-error full">{{ form.non_field_errors }}</div>
             {% endif %}
 
-            {# Form fields render labels, inputs, and field-specific validation errors. #}
+            {# Common fields render immediately; conditional fields are inserted only for the selected type. #}
             {% for field in form %}
-                <label class="field-{{ field.name }}{% if field.name == 'duties_responsibilities' %} full{% endif %}" data-field-name="{{ field.name }}">
-                    {{ field.label }}
-                    {{ field }}
-                    {% for error in field.errors %}
-                        <span class="plantilla-error">{{ error }}</span>
-                    {% endfor %}
-                </label>
+                {% if field.name in form.common_field_names %}
+                    <label class="field-{{ field.name }}{% if field.name == 'duties_responsibilities' %} full{% endif %}" data-field-name="{{ field.name }}">
+                        {{ field.label }}
+                        {{ field }}
+                        {% for error in field.errors %}
+                            <span class="plantilla-error">{{ error }}</span>
+                        {% endfor %}
+                    </label>
+                {% elif field.name in form.conditional_field_names %}
+                    <template data-conditional-field="{{ field.name }}">
+                        <label class="field-{{ field.name }}" data-field-name="{{ field.name }}">
+                            {{ field.label }}
+                            {{ field }}
+                            {% for error in field.errors %}
+                                <span class="plantilla-error">{{ error }}</span>
+                            {% endfor %}
+                        </label>
+                    </template>
+                {% endif %}
             {% endfor %}
 
             {# Action row submits the form or cancels back to the non-plantilla tab. #}
@@ -147,57 +159,116 @@
 </div>
 <script>
     const employeeTypeSelect = document.getElementById('id_employee_type');
-    const conditionalFields = {
-        JOB_ORDER: ['compensation_rate', 'rate_basis'],
-        CONTRACT_OF_SERVICE: ['compensation_rate', 'rate_basis'],
-        CASUAL: ['salary_grade', 'salary_step'],
-        CONTRACTUAL: ['salary_grade', 'salary_step'],
-        PROJECT_BASED: ['salary_grade', 'salary_step'],
-        TEMPORARY: ['salary_grade', 'salary_step'],
-        SUBSTITUTE: ['salary_grade', 'salary_step'],
-        OUTSOURCED_PERSONNEL: ['service_provider'],
-        CONSULTANT: ['consultancy_title', 'contract_amount'],
-        EMERGENCY_WORKER: ['work_assignment'],
-    };
-    const alwaysVisibleFields = [
-        'name',
-        'employee_type',
-        'office',
-        'position_title',
-        'funding_source',
-        'reference_number',
-        'duties_responsibilities',
-        'duration_value',
-        'duration_unit',
-        'start_date',
-        'end_date',
-    ];
+    const plantillaForm = document.querySelector('.plantilla-form');
+    const actionRow = document.querySelector('.plantilla-actions');
+    const conditionalFieldConfig = {{ form.dynamic_field_config|safe }};
+    const fieldTemplates = new Map(
+        Array.from(document.querySelectorAll('template[data-conditional-field]')).map(
+            (template) => [template.dataset.conditionalField, template]
+        )
+    );
 
-    function updateConditionalFields() {
-        if (!employeeTypeSelect) {
+    function clearControlValue(control) {
+        if (control.dataset && control.dataset.selected !== undefined) {
+            control.dataset.selected = '';
+        }
+
+        if (control.tagName === 'SELECT') {
+            control.selectedIndex = 0;
             return;
         }
 
-        const visibleFields = new Set([
-            ...alwaysVisibleFields,
-            ...(conditionalFields[employeeTypeSelect.value] || []),
-        ]);
+        if (control.type === 'checkbox' || control.type === 'radio') {
+            control.checked = false;
+            return;
+        }
 
-        document.querySelectorAll('[data-field-name]').forEach((fieldWrapper) => {
-            const fieldName = fieldWrapper.dataset.fieldName;
-            const fieldControl = fieldWrapper.querySelector('input, select, textarea');
-            const shouldShow = visibleFields.has(fieldName);
+        control.value = '';
+    }
 
-            fieldWrapper.hidden = !shouldShow;
-            if (fieldControl) {
-                fieldControl.disabled = !shouldShow;
-            }
+    function setupSalaryStepControls() {
+        const salaryGradeSelect = document.getElementById('id_salary_grade');
+        const salaryStepSelect = document.getElementById('id_salary_step');
+
+        if (!salaryGradeSelect || !salaryStepSelect) {
+            return;
+        }
+
+        const salarySteps = JSON.parse(salaryStepSelect.dataset.steps || '{}');
+
+        function setSalaryStepOptions(preserveSelection) {
+            const gradeSteps = salarySteps[salaryGradeSelect.value] || [];
+            const selectedStep = preserveSelection
+                ? (salaryStepSelect.dataset.selected || salaryStepSelect.value)
+                : '';
+            salaryStepSelect.replaceChildren();
+
+            const placeholder = document.createElement('option');
+            placeholder.value = '';
+            placeholder.textContent = gradeSteps.length ? 'Select salary step' : 'Select salary grade first';
+            salaryStepSelect.appendChild(placeholder);
+
+            gradeSteps.forEach((step) => {
+                const option = document.createElement('option');
+                option.value = step.value;
+                option.textContent = step.label;
+                option.selected = step.value === selectedStep;
+                salaryStepSelect.appendChild(option);
+            });
+
+            salaryStepSelect.disabled = gradeSteps.length === 0;
+        }
+
+        salaryGradeSelect.addEventListener('change', () => {
+            salaryStepSelect.dataset.selected = '';
+            setSalaryStepOptions(false);
         });
+        setSalaryStepOptions(true);
+    }
+
+    function renderConditionalFields(resetValues = false) {
+        if (!employeeTypeSelect || !plantillaForm || !actionRow) {
+            return;
+        }
+
+        document.querySelectorAll('[data-rendered-conditional="true"]').forEach((fieldWrapper) => {
+            fieldWrapper.remove();
+        });
+
+        const selectedConfig = conditionalFieldConfig[employeeTypeSelect.value] || {
+            fields: [],
+            required: [],
+        };
+        const requiredFields = new Set(selectedConfig.required || []);
+
+        selectedConfig.fields.forEach((fieldName) => {
+            const template = fieldTemplates.get(fieldName);
+            if (!template) {
+                return;
+            }
+
+            const fieldFragment = template.content.cloneNode(true);
+            const fieldWrapper = fieldFragment.querySelector('[data-field-name]');
+
+            if (fieldWrapper) {
+                fieldWrapper.dataset.renderedConditional = 'true';
+                fieldWrapper.querySelectorAll('input, select, textarea').forEach((control) => {
+                    control.required = requiredFields.has(fieldName);
+                    if (resetValues) {
+                        clearControlValue(control);
+                    }
+                });
+            }
+
+            plantillaForm.insertBefore(fieldFragment, actionRow);
+        });
+
+        setupSalaryStepControls();
     }
 
     if (employeeTypeSelect) {
-        employeeTypeSelect.addEventListener('change', updateConditionalFields);
-        updateConditionalFields();
+        employeeTypeSelect.addEventListener('change', () => renderConditionalFields(true));
+        renderConditionalFields();
     }
 </script>
 {% endblock %}
