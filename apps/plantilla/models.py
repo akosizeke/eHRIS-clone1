@@ -1,6 +1,5 @@
-import uuid
-
 from django.db import models
+import uuid
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.db.models.functions import Lower
@@ -19,10 +18,7 @@ item_number_validator = RegexValidator(
 class Item(AbstractBaseModel):
     class AppointmentType(models.TextChoices):
         PERMANENT = 'PERMANENT', 'Permanent'
-        COTERMINOUS_ELECTIVE = (
-            'COTERMINOUS_ELECTIVE',
-            'Coterminous / Elective Official',
-        )
+        COTERMINOUS_ELECTIVE = 'COTERMINOUS_ELECTIVE', 'Coterminous / Elective Official'
 
     # Employment category choices shown in plantilla forms and filters.
     EMPLOYMENT_TYPE_CHOICES = [
@@ -85,7 +81,7 @@ class Item(AbstractBaseModel):
         ]
 
     def __str__(self):
-        return f"{self.item_number} â€” {self.position_title}"
+        return f"{self.item_number} - {self.position_title}"
 
     def clean(self):
         super().clean()
@@ -145,26 +141,29 @@ class NonPlantillaEmployee(AbstractBaseModel):
         PER_DELIVERABLE = 'PER_DELIVERABLE', 'Per Deliverable'
 
     EMPLOYEE_TYPE_CHOICES = EmployeeType.choices
-
     DURATION_UNIT_CHOICES = [
         ('days', 'Days'),
         ('weeks', 'Weeks'),
         ('months', 'Months'),
         ('years', 'Years'),
     ]
-
     COMPENSATION_TYPES = {
         EmployeeType.JOB_ORDER,
         EmployeeType.CONTRACT_OF_SERVICE,
     }
-    SALARY_GRADE_TYPES = {
-        EmployeeType.CASUAL,
-        EmployeeType.CONTRACTUAL,
-        EmployeeType.TEMPORARY,
-        EmployeeType.SUBSTITUTE,
-        EmployeeType.PROJECT_BASED,
+    CONDITIONAL_FIELD_GROUPS = {
+        EmployeeType.JOB_ORDER: ('compensation_rate', 'rate_basis'),
+        EmployeeType.CONTRACT_OF_SERVICE: ('compensation_rate', 'rate_basis'),
+        EmployeeType.CASUAL: ('salary_grade', 'salary_step'),
+        EmployeeType.CONTRACTUAL: ('salary_grade', 'salary_step'),
+        EmployeeType.PROJECT_BASED: ('salary_grade', 'salary_step'),
+        EmployeeType.TEMPORARY: ('salary_grade', 'salary_step'),
+        EmployeeType.EMERGENCY_WORKER: ('work_assignment',),
+        EmployeeType.SUBSTITUTE: ('salary_grade', 'salary_step'),
+        EmployeeType.OUTSOURCED_PERSONNEL: ('service_provider',),
+        EmployeeType.CONSULTANT: ('consultancy_title', 'contract_amount'),
     }
-    COMMON_FORM_FIELDS = (
+    COMMON_FORM_FIELDS = [
         'name',
         'employee_type',
         'office',
@@ -176,31 +175,26 @@ class NonPlantillaEmployee(AbstractBaseModel):
         'duration_unit',
         'start_date',
         'end_date',
-    )
-    CONDITIONAL_FIELD_GROUPS = {
-        EmployeeType.JOB_ORDER: ('compensation_rate', 'rate_basis'),
-        EmployeeType.CONTRACT_OF_SERVICE: ('compensation_rate', 'rate_basis'),
-        EmployeeType.CASUAL: ('salary_grade', 'salary_step'),
-        EmployeeType.CONTRACTUAL: ('salary_grade', 'salary_step'),
-        EmployeeType.PROJECT_BASED: ('salary_grade', 'salary_step'),
-        EmployeeType.TEMPORARY: ('salary_grade', 'salary_step'),
-        EmployeeType.SUBSTITUTE: ('salary_grade', 'salary_step'),
-        EmployeeType.OUTSOURCED_PERSONNEL: ('service_provider',),
-        EmployeeType.CONSULTANT: ('consultancy_title', 'contract_amount'),
-        EmployeeType.EMERGENCY_WORKER: ('work_assignment',),
+    ]
+    SALARY_GRADE_TYPES = {
+        EmployeeType.CASUAL,
+        EmployeeType.CONTRACTUAL,
+        EmployeeType.PROJECT_BASED,
+        EmployeeType.TEMPORARY,
+        EmployeeType.SUBSTITUTE,
     }
 
     name           = models.CharField(max_length=255)
     employee_type  = models.CharField(max_length=30, choices=EMPLOYEE_TYPE_CHOICES)
     office         = models.ForeignKey('organization.Office', on_delete=models.PROTECT, related_name='non_plantilla_employees')
-    duration_value = models.PositiveIntegerField(validators=[MinValueValidator(1)])
-    duration_unit  = models.CharField(max_length=10, choices=DURATION_UNIT_CHOICES, default='months')
-    start_date     = models.DateField()
-    end_date       = models.DateField(null=True, blank=True)
     position_title = models.CharField(max_length=255, blank=True, default='')
     funding_source = models.CharField(max_length=255, blank=True, default='')
     reference_number = models.CharField(max_length=100, blank=True, default='')
     duties_responsibilities = models.TextField(blank=True, default='')
+    duration_value = models.PositiveIntegerField(validators=[MinValueValidator(1)])
+    duration_unit  = models.CharField(max_length=10, choices=DURATION_UNIT_CHOICES, default='months')
+    start_date     = models.DateField()
+    end_date       = models.DateField(null=True, blank=True)
     compensation_rate = models.DecimalField(
         max_digits=12,
         decimal_places=2,
@@ -272,19 +266,27 @@ class NonPlantillaEmployee(AbstractBaseModel):
 
     @property
     def duration_display(self):
-        unit = 'month' if self.duration_value == 1 and self.duration_unit == 'months' else self.duration_unit
-        if self.duration_value == 1 and self.duration_unit == 'years':
-            unit = 'year'
+        singular_units = {
+            'days': 'day',
+            'weeks': 'week',
+            'months': 'month',
+            'years': 'year',
+        }
+        unit = (
+            singular_units[self.duration_unit]
+            if self.duration_value == 1
+            else self.duration_unit
+        )
         return f'{self.duration_value} {unit}'
 
     @property
     def service_months(self):
-        if self.duration_unit == 'years':
-            return self.duration_value * 12
-        if self.duration_unit == 'weeks':
-            return self.duration_value // 4
         if self.duration_unit == 'days':
             return self.duration_value // 30
+        if self.duration_unit == 'weeks':
+            return self.duration_value // 4
+        if self.duration_unit == 'years':
+            return self.duration_value * 12
         return self.duration_value
 
     @property
@@ -379,31 +381,34 @@ class History(AbstractBaseModel):
         verbose_name_plural = 'Histories'
 
     def __str__(self):
-        return f"{self.plantilla_item} â€” {self.get_change_type_display()}"
+        return f"{self.plantilla_item} - {self.get_change_type_display()}"
 
-# Salary schedule is the version/container for one complete salary table.
+#CAMILLE CRISOSTOMO - 2026-06-04
+#SALARY GRADE MODEL FOR SALARY GRADE TABLE
+
+
 class SalarySchedule(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=150, unique=True)
-    description = models.TextField(blank=True, null=True)
+    description = models.TextField(null=True, blank=True)
     effective_date = models.DateField()
     is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
-        related_name="created_salary_schedules",
+        related_name='created_salary_schedules',
         null=True,
         blank=True,
     )
     updated_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
-        related_name="updated_salary_schedules",
+        related_name='updated_salary_schedules',
         null=True,
         blank=True,
     )
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = "salary_schedule"
@@ -427,12 +432,14 @@ class SalarySchedule(models.Model):
     def clean(self):
         if not self.name or not self.name.strip():
             raise ValidationError({"name": "Salary schedule name is required."})
+        self.name = self.name.strip()
+        self.description = self.description.strip() if self.description else None
 
 
 class SalaryGrade(models.Model):
     """
-    Stores the salary grade number under a specific salary schedule.
-    Example: Salary Grade 1, Salary Grade 2, Salary Grade 33, Salary Grade 34, etc.
+    Represents the salary grade number.
+    Example: Salary Grade 1, Salary Grade 2, Salary Grade 33, Salary Grade 34.
     """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -446,14 +453,14 @@ class SalaryGrade(models.Model):
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
-        related_name="created_salary_grades",
+        related_name='created_salary_grades',
         null=True,
         blank=True,
     )
     updated_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
-        related_name="updated_salary_grades",
+        related_name='updated_salary_grades',
         null=True,
         blank=True,
     )
@@ -474,27 +481,26 @@ class SalaryGrade(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.schedule.name} - Salary Grade {self.grade_number}"
+        return f"{self.schedule} - Salary Grade {self.grade_number}"
 
     def clean(self):
         if self.grade_number < 1:
             raise ValidationError({
-                "grade_number": "Salary grade number must be greater than zero."
+                "grade_number": "Salary grade must be greater than 0."
             })
 
 
 class SalaryGradeStep(models.Model):
     """
-    Stores each salary step amount.
-    Each salary grade has Step 1 to Step 8.
-    Each step has its own amount, source, and edit status.
+    Represents one step amount inside a salary grade.
+    Example: Salary Grade 2 - Step 1 - 14900.
     """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
     class SourceType(models.TextChoices):
         MANUAL = "manual", "Manual"
         IMPORTED = "imported", "Imported"
 
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     salary_grade = models.ForeignKey(SalaryGrade, on_delete=models.PROTECT, related_name="steps")
     step_number = models.PositiveSmallIntegerField()
     amount = models.PositiveIntegerField()
@@ -503,14 +509,14 @@ class SalaryGradeStep(models.Model):
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
-        related_name="created_salary_grade_steps",
+        related_name='created_salary_grade_steps',
         null=True,
         blank=True,
     )
     updated_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
-        related_name="updated_salary_grade_steps",
+        related_name='updated_salary_grade_steps',
         null=True,
         blank=True,
     )
@@ -532,12 +538,16 @@ class SalaryGradeStep(models.Model):
 
     def __str__(self):
         return (
-            f"Salary Grade {self.salary_grade.grade_number} "
-            f"- Step {self.step_number} - {self.amount}"
+            f"Salary Grade {self.salary_grade.grade_number} - "
+            f"Step {self.step_number}"
         )
 
     @property
     def is_locked(self):
+        """
+        Imported values are locked.
+        Manual values are editable.
+        """
         return not self.is_editable
 
     def clean(self):
@@ -545,12 +555,10 @@ class SalaryGradeStep(models.Model):
             raise ValidationError({
                 "step_number": "Step number must be from 1 to 8 only."
             })
-
         if self.amount is None or self.amount < 1:
             raise ValidationError({
-                "amount": "Salary amount must be greater than zero."
+                "amount": "Amount must be greater than 0."
             })
-
         self.is_editable = self.source == self.SourceType.MANUAL
 
     def save(self, *args, **kwargs):
@@ -558,4 +566,4 @@ class SalaryGradeStep(models.Model):
         update_fields = kwargs.get("update_fields")
         if update_fields and "source" in update_fields:
             kwargs["update_fields"] = set(update_fields) | {"is_editable"}
-        super().save(*args, **kwargs)
+        return super().save(*args, **kwargs)

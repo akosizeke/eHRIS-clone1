@@ -89,7 +89,7 @@ def build_organization(data, organization=None, partial=False):
 
 
 # Normalizes Django ValidationError objects into API error dictionaries.
-def validation_error_to_dict(error):
+def validation_error_to_dict(error): 
     if hasattr(error, 'message_dict'):
         return error.message_dict
     return {'detail': error.messages}
