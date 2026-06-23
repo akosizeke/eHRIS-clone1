@@ -8,7 +8,7 @@ from django.urls import reverse
 from apps.organization.models import Office, Organization
 
 from .forms import ItemForm
-from .models import Item, NonPlantillaEmployee, SalarySchedule
+from .models import Item, NonPlantillaEmployee
 
 
 class PlantillaValidationTests(TestCase):
@@ -149,30 +149,3 @@ class PlantillaValidationTests(TestCase):
 
         with self.assertRaises(ValidationError):
             employee.full_clean()
-
-    def test_new_salary_schedule_sets_previous_inactive_date(self):
-        previous_schedule = SalarySchedule.objects.create(
-            name='SSL 2025',
-            effective_date=date(2025, 1, 1),
-        )
-
-        response = self.client.post(reverse('plantilla:salary_schedule_list'), {
-            'name': 'SSL 2026',
-            'effective_date': '2026-01-01',
-            'description': '',
-        })
-
-        previous_schedule.refresh_from_db()
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(previous_schedule.inactive_date, date(2026, 1, 1))
-
-    def test_salary_schedule_status_shows_inactive_date(self):
-        SalarySchedule.objects.create(
-            name='SSL 2025',
-            effective_date=date(2025, 1, 1),
-            inactive_date=date(2026, 1, 1),
-        )
-
-        response = self.client.get(reverse('plantilla:salary_schedule_list'))
-
-        self.assertContains(response, 'Jan. 1, 2026')

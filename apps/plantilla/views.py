@@ -1,5 +1,6 @@
 import json
 import re
+from datetime import timedelta
 from io import BytesIO
 from urllib.parse import quote, urlencode
 from zipfile import BadZipFile
@@ -36,7 +37,7 @@ def _active_salary_schedule():
         is_active=True,
         effective_date__lte=today,
     ).filter(
-        Q(inactive_date__isnull=True) | Q(inactive_date__gt=today),
+        Q(inactive_date__isnull=True) | Q(inactive_date__gte=today),
     ).order_by('-effective_date', 'name').first()
 
 
@@ -91,23 +92,29 @@ def _set_salary_schedule_inactive_dates(schedule):
     next_schedule = SalarySchedule.objects.filter(
         effective_date__gt=schedule.effective_date,
     ).order_by('effective_date', 'name').first()
+    next_inactive_date = (
+        next_schedule.effective_date - timedelta(days=1)
+        if next_schedule
+        else None
+    )
     if next_schedule and (
         schedule.inactive_date is None
-        or schedule.inactive_date > next_schedule.effective_date
+        or schedule.inactive_date > next_inactive_date
     ):
-        schedule.inactive_date = next_schedule.effective_date
+        schedule.inactive_date = next_inactive_date
         schedule.save(update_fields=['inactive_date', 'updated_at'])
 
-    SalarySchedule.objects.filter(
+    previous_inactive_date = schedule.effective_date - timedelta(days=1)
+    previous_schedules = SalarySchedule.objects.filter(
         effective_date__lt=schedule.effective_date,
     ).exclude(
         pk=schedule.pk,
     ).filter(
-        Q(inactive_date__isnull=True) | Q(inactive_date__gt=schedule.effective_date),
-    ).update(
-        inactive_date=schedule.effective_date,
-        updated_at=timezone.now(),
+        Q(inactive_date__isnull=True) | Q(inactive_date__gte=schedule.effective_date),
     )
+    for previous_schedule in previous_schedules:
+        previous_schedule.inactive_date = previous_inactive_date
+        previous_schedule.save(update_fields=['inactive_date', 'updated_at'])
 
 
 # Converts a plantilla item model into JSON for API-style responses.

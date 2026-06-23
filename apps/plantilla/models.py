@@ -254,8 +254,12 @@ class SalarySchedule(models.Model):
         return (
             self.is_active
             and self.effective_date <= today
-            and (self.inactive_date is None or self.inactive_date > today)
+            and (self.inactive_date is None or self.inactive_date >= today)
         )
+
+    @property
+    def is_inactive(self):
+        return self.inactive_date is not None and self.inactive_date < timezone.localdate()
 
     def clean(self):
         if not self.name or not self.name.strip():

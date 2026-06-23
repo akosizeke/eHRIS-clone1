@@ -1,6 +1,7 @@
 import json
 
 from django import forms
+from django.db.models import Q
 from django.utils import timezone
 
 from .models import (
@@ -76,9 +77,12 @@ class ItemForm(forms.ModelForm):
         self.fields['legalbasis'].empty_label = 'Select legal basis (optional)'
 
         if use_salary_grade_controls:
+            today = timezone.localdate()
             active_schedule = SalarySchedule.objects.filter(
                 is_active=True,
-                effective_date__lte=timezone.localdate(),
+                effective_date__lte=today,
+            ).filter(
+                Q(inactive_date__isnull=True) | Q(inactive_date__gte=today),
             ).order_by('-effective_date', 'name').first()
             salary_grade_queryset = SalaryGrade.objects.none()
             salary_step_queryset = SalaryGradeStep.objects.none()

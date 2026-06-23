@@ -129,10 +129,10 @@
                                 <td>{{ schedule.grade_count }}</td>
                                 <td>{{ schedule.step_count }}</td>
                                 <td>
-                                    {% if schedule.inactive_date %}
-                                        {{ schedule.inactive_date }}
-                                    {% elif schedule.is_effective %}
+                                    {% if schedule.is_effective %}
                                         Effective
+                                    {% elif schedule.is_inactive %}
+                                        {{ schedule.inactive_date }}
                                     {% elif schedule.is_active %}
                                         Scheduled
                                     {% else %}
