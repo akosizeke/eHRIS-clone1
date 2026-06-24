@@ -1,5 +1,6 @@
 import json
 import re
+from datetime import timedelta
 from io import BytesIO
 from urllib.parse import quote, urlencode
 from zipfile import BadZipFile
@@ -31,9 +32,12 @@ DEFAULT_SALARY_SCHEDULE_NAME = 'Default Salary Schedule'
 
 
 def _active_salary_schedule():
+    today = timezone.localdate()
     return SalarySchedule.objects.filter(
         is_active=True,
-        effective_date__lte=timezone.localdate(),
+        effective_date__lte=today,
+    ).filter(
+        Q(inactive_date__isnull=True) | Q(inactive_date__gte=today),
     ).order_by('-effective_date', 'name').first()
 
 
@@ -75,6 +79,42 @@ def _salary_grade_url(schedule=None, **params):
     if query:
         return f'{url}?{urlencode(query)}'
     return url
+
+
+def _save_salary_schedule(form):
+    with transaction.atomic():
+        schedule = form.save()
+        _set_salary_schedule_inactive_dates(schedule)
+    return schedule
+
+
+def _set_salary_schedule_inactive_dates(schedule):
+    next_schedule = SalarySchedule.objects.filter(
+        effective_date__gt=schedule.effective_date,
+    ).order_by('effective_date', 'name').first()
+    next_inactive_date = (
+        next_schedule.effective_date - timedelta(days=1)
+        if next_schedule
+        else None
+    )
+    if next_schedule and (
+        schedule.inactive_date is None
+        or schedule.inactive_date > next_inactive_date
+    ):
+        schedule.inactive_date = next_inactive_date
+        schedule.save(update_fields=['inactive_date', 'updated_at'])
+
+    previous_inactive_date = schedule.effective_date - timedelta(days=1)
+    previous_schedules = SalarySchedule.objects.filter(
+        effective_date__lt=schedule.effective_date,
+    ).exclude(
+        pk=schedule.pk,
+    ).filter(
+        Q(inactive_date__isnull=True) | Q(inactive_date__gte=schedule.effective_date),
+    )
+    for previous_schedule in previous_schedules:
+        previous_schedule.inactive_date = previous_inactive_date
+        previous_schedule.save(update_fields=['inactive_date', 'updated_at'])
 
 
 # Converts a plantilla item model into JSON for API-style responses.
@@ -380,7 +420,7 @@ def salary_schedule_list(request):
     if request.method == 'POST':
         form = SalaryScheduleForm(request.POST)
         if form.is_valid():
-            form.save()
+            _save_salary_schedule(form)
             return redirect(f"{reverse('plantilla:salary_schedule_list')}?created=1")
     else:
         form = SalaryScheduleForm()
@@ -411,8 +451,6 @@ def salary_schedule_activate(request, schedule_id):
         schedule.save(update_fields=['is_active', 'updated_at'])
     return redirect(f"{reverse('plantilla:salary_schedule_list')}?activated=1")
 
-
-# CAMILLE CRISOSTOMO - 2026-06-08 
 
 def salary_grade_detail(request, grade_number):
     active_schedule = _selected_salary_schedule(request)

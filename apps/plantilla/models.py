@@ -392,6 +392,7 @@ class SalarySchedule(models.Model):
     name = models.CharField(max_length=150, unique=True)
     description = models.TextField(null=True, blank=True)
     effective_date = models.DateField()
+    inactive_date = models.DateField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -427,7 +428,16 @@ class SalarySchedule(models.Model):
 
     @property
     def is_effective(self):
-        return self.is_active and self.effective_date <= timezone.localdate()
+        today = timezone.localdate()
+        return (
+            self.is_active
+            and self.effective_date <= today
+            and (self.inactive_date is None or self.inactive_date >= today)
+        )
+
+    @property
+    def is_inactive(self):
+        return self.inactive_date is not None and self.inactive_date < timezone.localdate()
 
     def clean(self):
         if not self.name or not self.name.strip():
