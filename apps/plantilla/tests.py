@@ -15,6 +15,7 @@ from .models import (
     SalaryGradeStep,
     SalarySchedule,
 )
+from .views import _office_rows
 
 
 class PlantillaValidationTests(TestCase):
@@ -248,6 +249,45 @@ class PlantillaValidationTests(TestCase):
         self.assertEqual(response.status_code, 200)
         item_numbers = {item['item_number'] for item in response.json()['plantilla']}
         self.assertEqual(item_numbers, {coterminous.item_number})
+
+    def test_office_rows_group_child_offices_under_parent(self):
+        division = Office.objects.create(
+            organization=self.organization,
+            parent_office=self.office,
+            name='Personnel Division',
+            office_code='PD',
+            office_type=Office.OfficeType.DIVISION,
+        )
+        section = Office.objects.create(
+            organization=self.organization,
+            parent_office=division,
+            name='Records Section',
+            office_code='RS',
+            office_type=Office.OfficeType.UNIT,
+        )
+        Item.objects.create(
+            item_number='HRMO-030',
+            position_title='Records Officer',
+            appointment_type=Item.AppointmentType.PERMANENT,
+            salary_grade=10,
+            office=section,
+            employment_type='permanent',
+            funding_source='PS',
+            position_status='filled',
+            employee_name='Maria Santos',
+        )
+
+        rows = _office_rows(
+            Office.objects.filter(is_active=True).order_by('level_no', 'name'),
+            '',
+            Item.objects.filter(employment_type='permanent'),
+        )
+
+        self.assertEqual([row['office'].name for row in rows], [self.office.name])
+        self.assertEqual(rows[0]['children'][0]['office'], division)
+        self.assertEqual(rows[0]['children'][0]['children'][0]['office'], section)
+        self.assertEqual(rows[0]['total_positions'], 1)
+        self.assertEqual(rows[0]['filled_count'], 1)
 
     def test_non_plantilla_eligibility_uses_duration(self):
         employee = NonPlantillaEmployee.objects.create(

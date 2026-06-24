@@ -858,14 +858,7 @@ def non_plantilla_update(request, pk):
 
 
 def _office_rows(offices, office_search, permanent_items):
-    office_queryset = offices
-    if office_search:
-        office_queryset = office_queryset.filter(
-            Q(name__icontains=office_search)
-            | Q(office_code__icontains=office_search)
-        )
-
-    office_queryset = office_queryset.annotate(
+    office_queryset = offices.annotate(
         total_positions=Count(
             'plantilla_items',
             filter=Q(plantilla_items__employment_type='permanent'),
@@ -894,17 +887,52 @@ def _office_rows(offices, office_search, permanent_items):
     )
 
     positions_by_office = {}
-    office_ids = [office.pk for office in office_queryset]
+    all_offices = list(office_queryset)
+    office_ids = [office.pk for office in all_offices]
     for item in permanent_items.filter(office_id__in=office_ids):
         positions_by_office.setdefault(item.office_id, []).append(item)
 
-    return [
-        {
+    children_by_parent = {}
+    for office in all_offices:
+        children_by_parent.setdefault(office.parent_office_id, []).append(office)
+
+    search_term = office_search.lower()
+
+    def office_matches(office):
+        if not search_term:
+            return True
+        return (
+            search_term in office.name.lower()
+            or search_term in (office.office_code or '').lower()
+        )
+
+    def build_row(office):
+        child_rows = [build_row(child) for child in children_by_parent.get(office.pk, [])]
+        total_positions = office.total_positions + sum(row['total_positions'] for row in child_rows)
+        filled_count = office.filled_count + sum(row['filled_count'] for row in child_rows)
+        vacant_count = office.vacant_count + sum(row['vacant_count'] for row in child_rows)
+        abolished_count = office.abolished_count + sum(row['abolished_count'] for row in child_rows)
+        matches_search = office_matches(office) or any(row['matches_search'] for row in child_rows)
+        if search_term and office_matches(office):
+            visible_children = child_rows
+        else:
+            visible_children = [row for row in child_rows if row['matches_search']]
+
+        return {
             'office': office,
+            'children': visible_children,
             'positions': positions_by_office.get(office.pk, []),
+            'total_positions': total_positions,
+            'filled_count': filled_count,
+            'vacant_count': vacant_count,
+            'abolished_count': abolished_count,
+            'matches_search': matches_search,
         }
-        for office in office_queryset
-    ]
+
+    rows = [build_row(office) for office in children_by_parent.get(None, [])]
+    if search_term:
+        rows = [row for row in rows if row['matches_search']]
+    return rows
 
 
 def _prepare_permanent_form(form):

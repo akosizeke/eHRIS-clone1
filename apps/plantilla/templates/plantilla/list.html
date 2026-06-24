@@ -151,36 +151,40 @@
         font-weight: 700;
     }
 
-    /* Hides nested position rows until an office row is expanded. */
+    /* Hides nested office rows until an office row is expanded. */
     .plantilla-positions-row {
         display: none;
     }
 
-    /* Reveals nested position rows when the toggle script marks them open. */
+    /* Reveals nested office rows when the toggle script marks them open. */
     .plantilla-positions-row.is-open {
         display: table-row;
     }
 
-    /* Stacks expanded position summaries inside an office row. */
-    .plantilla-position-list {
+    /* Stacks expanded child office summaries inside an office row. */
+    .plantilla-child-office-list {
         display: grid;
         gap: 8px;
         padding: 8px 0;
     }
 
-    /* Lays out one expanded position summary with title on the left and status on the right. */
-    .plantilla-position-item {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
+    /* Lays out one child office summary with compact counts and actions. */
+    .plantilla-child-office-item {
+        display: grid;
+        grid-template-columns: minmax(220px, 1fr) repeat(4, minmax(70px, auto)) auto;
+        gap: 12px;
         align-items: center;
-        justify-content: space-between;
         border-bottom: 1px solid #e5e7eb;
         padding: 8px 0;
     }
 
-    /* Removes the divider after the final expanded position summary. */
-    .plantilla-position-item:last-child {
+    /* Indents second-level child offices under their division. */
+    .plantilla-child-office-item.is-nested {
+        padding-left: 28px;
+    }
+
+    /* Removes the divider after the final expanded child office summary. */
+    .plantilla-child-office-item:last-child {
         border-bottom: 0;
     }
 
@@ -293,41 +297,58 @@
                         {% for row in office_rows %}
                             <tr>
                                 <td>
-                                    {# Toggle button opens the hidden row containing this office's positions. #}
+                                    {# Toggle button opens the hidden row containing this office's child offices. #}
                                     <button class="plantilla-toggle" type="button" data-target="office-{{ row.office.pk }}" aria-label="Toggle {{ row.office.name }}">&#9654;</button>
                                 </td>
                                 <td>
                                     <strong>{{ row.office.name }}</strong>
                                     <div class="plantilla-muted">{{ row.office.office_code }}</div>
                                 </td>
-                                <td>{{ row.office.total_positions }}</td>
-                                <td>{{ row.office.filled_count }}</td>
-                                <td>{{ row.office.vacant_count }}</td>
-                                <td>{{ row.office.abolished_count }}</td>
+                                <td>{{ row.total_positions }}</td>
+                                <td>{{ row.filled_count }}</td>
+                                <td>{{ row.vacant_count }}</td>
+                                <td>{{ row.abolished_count }}</td>
                                 <td>
                                     <a class="plantilla-button" href="{% url 'plantilla:list' %}?tab=plantilla&office={{ row.office.pk }}">View Plantilla</a>
                                 </td>
                             </tr>
-                            {# Hidden detail row contains plantilla positions assigned to the office. #}
+                            {# Hidden detail row contains child offices under this office. #}
                             <tr id="office-{{ row.office.pk }}" class="plantilla-positions-row">
                                 <td></td>
                                 <td colspan="6">
-                                    {% if row.positions %}
-                                        {# Expanded list shows each position title, salary grade, item number, and status. #}
-                                        <div class="plantilla-position-list">
-                                            {% for item in row.positions %}
-                                                <div class="plantilla-position-item">
+                                    {% if row.children %}
+                                        {# Expanded list shows offices nested under the selected office. #}
+                                        <div class="plantilla-child-office-list">
+                                            {% for child in row.children %}
+                                                <div class="plantilla-child-office-item">
                                                     <span>
-                                                        <strong>{{ item.position_title }}</strong>
-                                                        <span class="plantilla-muted">SG {{ item.salary_grade }} - {{ item.item_number }} - {{ item.get_appointment_type_display }}</span>
+                                                        <strong>{{ child.office.name }}</strong>
+                                                        <span class="plantilla-muted">{{ child.office.office_code }}</span>
                                                     </span>
-                                                    <span class="badge status-{{ item.position_status }}">{{ item.get_position_status_display }}</span>
+                                                    <span>{{ child.total_positions }}</span>
+                                                    <span>{{ child.filled_count }}</span>
+                                                    <span>{{ child.vacant_count }}</span>
+                                                    <span>{{ child.abolished_count }}</span>
+                                                    <a class="plantilla-button" href="{% url 'plantilla:list' %}?tab=plantilla&office={{ child.office.pk }}">View Plantilla</a>
                                                 </div>
+                                                {% for grandchild in child.children %}
+                                                    <div class="plantilla-child-office-item is-nested">
+                                                        <span>
+                                                            <strong>{{ grandchild.office.name }}</strong>
+                                                            <span class="plantilla-muted">{{ grandchild.office.office_code }}</span>
+                                                        </span>
+                                                        <span>{{ grandchild.total_positions }}</span>
+                                                        <span>{{ grandchild.filled_count }}</span>
+                                                        <span>{{ grandchild.vacant_count }}</span>
+                                                        <span>{{ grandchild.abolished_count }}</span>
+                                                        <a class="plantilla-button" href="{% url 'plantilla:list' %}?tab=plantilla&office={{ grandchild.office.pk }}">View Plantilla</a>
+                                                    </div>
+                                                {% endfor %}
                                             {% endfor %}
                                         </div>
                                     {% else %}
-                                        {# Empty state explains that the expanded office has no plantilla positions. #}
-                                        <div class="plantilla-empty">No plantilla positions in this office.</div>
+                                        {# Empty state explains that the expanded office has no child offices. #}
+                                        <div class="plantilla-empty">No offices under this office.</div>
                                     {% endif %}
                                 </td>
                             </tr>
