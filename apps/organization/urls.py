@@ -27,10 +27,14 @@ urlpatterns = [
     path('offices/list/', views.office_hierarchy_index, name='office_list'),
     # Alternate office hierarchy landing page.
     path('offices/', views.office_hierarchy_index, name='office_hierarchy_index'),
+    # Incoming hierarchy route retained as a non-duplicated alias.
+    path('offices/hierarchy/', views.office_hierarchy_index, name='office_hierarchy_index_alias'),
     # Office creation form for departments, divisions, and units.
     path('offices/create/', views.office_create, name='office_create'),
     # Legacy detail route for one office hierarchy node.
     path('offices/detail/<uuid:office_id>/', views.office_hierarchy, name='office_detail'),
+    # Incoming hierarchy detail route retained as a non-duplicated alias.
+    path('offices/<uuid:office_id>/hierarchy/', views.office_hierarchy, name='office_hierarchy_alias'),
     # Creates an OfficeVersion for the selected office.
     path('offices/<uuid:office_id>/versions/create/', views.office_version_create, name='office_version_create_for_office'),
     # Shows one OfficeVersion record.

@@ -1,0 +1,43 @@
+<details class="hierarchy-node" {% if node.children %}open{% endif %}>
+    <summary class="hierarchy-node__summary">
+        <span class="hierarchy-node__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+                <path d="M10 4h4v4h-4V4ZM4 16h4v4H4v-4Zm12 0h4v4h-4v-4Zm-5-6h2v2h6v3h-2v-1H7v1H5v-3h6v-2Zm1-4v1h0V6Zm-6 12v0h0Zm12 0v0h0Z"/>
+            </svg>
+        </span>
+
+        <a class="hierarchy-node__name" href="{% url 'organization:office_hierarchy' node.office.pk %}">
+            {{ node.office.name }}
+        </a>
+
+        <span class="hierarchy-node__meta">
+            {% if node.office.office_head_title or node.office.office_head %}
+                {{ node.office.office_head_title|default:'Office Head' }}:
+                {{ node.office.office_head_display|default:'Unassigned' }}
+            {% else %}
+                Office Head: Unassigned
+            {% endif %}
+        </span>
+
+        <span class="hierarchy-node__type">
+            {{ node.office.office_type }}
+            {% if node.office.office_code %}
+                <span>{{ node.office.office_code }}</span>
+            {% endif %}
+        </span>
+
+        <span class="hierarchy-node__toggle" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+                <path d="m7.4 8.6 4.6 4.6 4.6-4.6L18 10l-6 6-6-6 1.4-1.4Z"/>
+            </svg>
+        </span>
+    </summary>
+
+    {% if node.children %}
+        <div class="hierarchy-node__children">
+            {% for child in node.children %}
+                {% include 'organization/offices/office_node.html' with node=child %}
+            {% endfor %}
+        </div>
+    {% endif %}
+</details>

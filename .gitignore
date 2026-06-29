@@ -217,4 +217,5 @@ __marimo__/
 .vscode/
 .idea/
 *.sublime-project
-*.sublime-workspace
+*.sublime-workspaces
+/staticfiles/

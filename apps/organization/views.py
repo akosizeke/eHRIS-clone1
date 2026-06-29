@@ -3,6 +3,7 @@ from collections import defaultdict
 from pathlib import Path
 
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required, permission_required
 from django.core.exceptions import ValidationError
 from django.core.files.storage import default_storage
 from django.db import DatabaseError
@@ -455,6 +456,8 @@ def office_hierarchy(request, office_id):
 
 
 # Handles office creation through the OfficeForm for HTML and JSON callers.
+@login_required
+@permission_required('organization.add_office', raise_exception=True)
 @require_http_methods(['GET', 'POST'])
 def office_create(request):
     wants_json = _request_wants_json(request)

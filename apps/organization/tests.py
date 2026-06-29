@@ -2,6 +2,7 @@ import json
 from datetime import date
 from uuid import uuid4
 
+from django.contrib.auth.models import Permission, User
 from django.test import TestCase
 from django.urls import reverse
 
@@ -295,3 +296,102 @@ class OfficeFormTests(TestCase):
 
         with self.assertRaisesMessage(Exception, 'Version number already exists for this office.'):
             duplicate.full_clean()
+
+
+# Covers office hierarchy rendering and JSON create behavior.
+class OfficeHierarchyTests(TestCase):
+    def setUp(self):
+        self.organization = Organization.objects.create(
+            name='Provincial Information Technology Office',
+            short_name='PITO',
+            province_code='3000',
+            address='Capitol Compound',
+            seal_path='seals/pito.png',
+        )
+
+    def create_office(self, **kwargs):
+        defaults = {
+            'organization': self.organization,
+            'name': 'PITO Department',
+            'office_code': 'PITO',
+            'office_type': Office.OfficeType.DEPARTMENT,
+        }
+        defaults.update(kwargs)
+        return Office.objects.create(**defaults)
+
+    def test_viewing_office_hierarchy_page_excludes_inactive_offices(self):
+        department = self.create_office()
+        active_division = self.create_office(
+            parent_office=department,
+            name='Existing Division',
+            office_code='EXDIV',
+            office_type=Office.OfficeType.DIVISION,
+            office_head_title=Office.HEAD_TITLE_OFFICER_IN_CHARGE,
+        )
+        self.create_office(
+            parent_office=department,
+            name='Inactive Division',
+            office_code='INACTIVE',
+            office_type=Office.OfficeType.DIVISION,
+            is_active=False,
+        )
+
+        response = self.client.get(
+            reverse('organization:office_hierarchy', args=[department.pk])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, department.name)
+        self.assertContains(response, active_division.name)
+        self.assertNotContains(response, 'Inactive Division')
+
+    def test_hierarchy_index_shows_empty_state_without_offices(self):
+        response = self.client.get(reverse('organization:office_hierarchy_index'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'No office hierarchy records yet.')
+        self.assertContains(
+            response,
+            'Click New Unit to create the first office, division, or unit.',
+        )
+
+    def test_hierarchy_page_renders_database_records_only(self):
+        department = self.create_office()
+
+        response = self.client.get(
+            reverse('organization:office_hierarchy', args=[department.pk])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, department.name)
+        self.assertContains(response, 'No child offices under this office yet.')
+
+    def test_create_office_json_endpoint(self):
+        user = User.objects.create_user(username='office-admin', password='test-pass')
+        user.user_permissions.add(
+            Permission.objects.get(
+                content_type__app_label='organization',
+                codename='add_office',
+            )
+        )
+        self.client.force_login(user)
+
+        response = self.client.post(
+            reverse('organization:office_create'),
+            data=json.dumps({
+                'organization': str(self.organization.pk),
+                'name': 'Database Management Division',
+                'office_code': 'DMD',
+                'office_type': Office.OfficeType.DEPARTMENT,
+                'office_head': '',
+                'office_head_title': '',
+                'is_active': True,
+            }),
+            content_type='application/json',
+            HTTP_ACCEPT='application/json',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload['success'])
+        self.assertEqual(payload['office']['level_no'], 1)

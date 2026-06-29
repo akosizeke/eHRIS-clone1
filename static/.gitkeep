@@ -1,0 +1,1 @@
+# Keeps BASE_DIR / 'static' present for STATICFILES_DIRS.

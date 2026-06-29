@@ -1,52 +1,79 @@
 {% extends "organization/base.html" %}
-{# Office create template rendered by office_create using OfficeForm. #}
+{% load static %}
 
-{% block title %}Create Office | eHRIS{% endblock %}
+{% block title %}New Unit | eHRIS{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'organization/css/office_hierarchy.css' %}">
+{% endblock %}
 
 {% block content %}
-{# Header links back to the office hierarchy workflow. #}
-<header class="page-header">
-    <div>
-        <h1>Create Office</h1>
-        <p class="muted">Add a department, division, or unit to the organization hierarchy.</p>
-    </div>
-    <a class="button secondary" href="{{ hierarchy_url }}">Back to Offices</a>
-</header>
+<div class="office-hierarchy-page">
+    <header class="org-topbar">
+        <nav class="org-breadcrumb" aria-label="Breadcrumb">
+            <a href="{% url 'organization:office_hierarchy_index' %}">Organization</a>
+            <span aria-hidden="true">/</span>
+            <span>New Unit</span>
+        </nav>
+    </header>
 
-{# Form creates Department, Division, or Unit records under an organization. #}
-<section class="panel">
-    <form method="post">
-        {# CSRF token protects the office create request from cross-site submissions. #}
-        {% csrf_token %}
-        {% if next_url %}
-            {# Hidden next value returns the user to the originating hierarchy page after save. #}
-            <input type="hidden" name="next" value="{{ next_url }}">
-        {% endif %}
+    <nav class="org-tabs" aria-label="Organization sections">
+        <a href="#">Info</a>
+        <a href="#">About</a>
+        <a href="#">Office</a>
+        <a class="is-active" href="{% url 'organization:office_hierarchy_index' %}">Hierarchy</a>
+    </nav>
 
-        {% if form.non_field_errors %}
-            {# Non-field errors show office validation problems not tied to a single input. #}
-            <div class="notice error">{{ form.non_field_errors }}</div>
-        {% endif %}
-
-        {# Field loop renders each OfficeForm control with help text and per-field errors. #}
-        {% for field in form %}
-            <label>
-                {{ field.label }}
-                {{ field }}
-                {% if field.help_text %}
-                    <span class="muted">{{ field.help_text }}</span>
-                {% endif %}
-                {% for error in field.errors %}
-                    <span class="notice error">{{ error }}</span>
-                {% endfor %}
-            </label>
-        {% endfor %}
-
-        {# Toolbar submits the new office or cancels back to the hierarchy page. #}
-        <div class="toolbar">
-            <button type="submit">Create Office</button>
-            <a class="button secondary" href="{{ hierarchy_url }}">Cancel</a>
+    <section class="form-card" aria-labelledby="new-unit-title">
+        <div class="form-card__header">
+            <div>
+                <h1 id="new-unit-title">New Unit</h1>
+                <p>Create an office, division, or unit record.</p>
+            </div>
+            <a class="org-button org-button--secondary" href="{{ hierarchy_url }}">Back to Hierarchy</a>
         </div>
-    </form>
-</section>
+
+        <form class="org-form" method="post" novalidate>
+            {% csrf_token %}
+            {% if next_url %}
+                <input type="hidden" name="next" value="{{ next_url }}">
+            {% endif %}
+
+            {% if form.non_field_errors %}
+                <div class="form-errors">
+                    {{ form.non_field_errors }}
+                </div>
+            {% endif %}
+
+            <div class="org-form-grid">
+                {% for field in form %}
+                    <div class="org-form-field {% if field.name == 'is_active' %}org-form-field--checkbox{% endif %}">
+                        {% if field.name == 'is_active' %}
+                            <label>
+                                {{ field }}
+                                <span>{{ field.label }}</span>
+                            </label>
+                        {% else %}
+                            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {{ field }}
+                        {% endif %}
+
+                        {% if field.help_text %}
+                            <small>{{ field.help_text }}</small>
+                        {% endif %}
+
+                        {% for error in field.errors %}
+                            <small class="field-error">{{ error }}</small>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+            </div>
+
+            <div class="form-actions">
+                <a class="org-button org-button--secondary" href="{{ hierarchy_url }}">Cancel</a>
+                <button class="org-button org-button--primary" type="submit">Create Office</button>
+            </div>
+        </form>
+    </section>
+</div>
 {% endblock %}

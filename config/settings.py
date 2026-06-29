@@ -1,5 +1,6 @@
 from datetime import timedelta
 from pathlib import Path
+import sys
 import environ # for environment variables
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -41,7 +42,6 @@ INSTALLED_APPS = [
     'apps.legal_basis',
     'apps.organization',
     'apps.plantilla',
-    
 ]
 
 # Request/response middleware stack used by every dashboard, page, and API route.
@@ -80,20 +80,39 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-# PostgreSQL connection for the HRIS schema defined in config/.env.
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': env('DB_NAME'),
-        'USER': env('DB_USER'),
-        'PASSWORD': env('DB_PASSWORD'),
-        'HOST': env('DB_HOST'),
-        'PORT': env('DB_PORT'),
-        'OPTIONS': {
-            'options': f'-c search_path={env("DB_SCHEMA")}'
+RUNNING_TESTS = 'test' in sys.argv
+
+if RUNNING_TESTS:
+    # Tests use a local SQLite database so developers do not need PostgreSQL
+    # CREATEDB privileges on the shared/development database server.
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'test.sqlite3',
         }
     }
-}
+    MIGRATION_MODULES = {
+        'core': None,
+        'employee_profile': None,
+        'legal_basis': None,
+        'organization': None,
+        'plantilla': None,
+    }
+else:
+    # PostgreSQL connection for the HRIS schema defined in config/.env.
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': env('DB_NAME'),
+            'USER': env('DB_USER'),
+            'PASSWORD': env('DB_PASSWORD'),
+            'HOST': env('DB_HOST'),
+            'PORT': env('DB_PORT'),
+            'OPTIONS': {
+                'options': f'-c search_path={env("DB_SCHEMA")}'
+            }
+        }
+    }
 
 
 # Password validation
@@ -134,6 +153,10 @@ USE_TZ = True
 
 # Base URL for static assets used by templates and app CSS/JS files.
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',
+]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
@@ -144,3 +167,4 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+LOGIN_URL = '/admin/login/'
