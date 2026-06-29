@@ -117,7 +117,7 @@
             <h1>{{ title }}</h1>
             <p class="muted">Authorized plantilla positions, including permanent and coterminous/elective positions.</p>
         </div>
-        <a class="plantilla-button" href="{% url 'plantilla:list' %}?tab=plantilla">Back to Plantilla</a>
+        <a class="plantilla-button" href="{{ back_url }}">Back to Office Positions</a>
     </header>
 
     {# Form panel collects permanent plantilla position details for creation or update. #}
@@ -136,7 +136,7 @@
 
             {# Visible fields render labels, inputs, help text, and field-specific errors. #}
             {% for field in form.visible_fields %}
-                <label class="{% if field.name == 'duties_responsibilities' or field.name == 'legalbasis' %}full{% endif %}">
+                <label class="{% if field.name == 'duties_responsibilities' or field.name == 'requirements' or field.name == 'legalbasis' %}full{% endif %}">
                     {{ field.label }}
                     {{ field }}
                     {% if field.help_text %}
@@ -151,7 +151,7 @@
             {# Action row submits the form or cancels back to the plantilla tab. #}
             <div class="plantilla-actions">
                 <button type="submit">{{ submit_label }}</button>
-                <a class="plantilla-button" href="{% url 'plantilla:list' %}?tab=plantilla">Cancel</a>
+                <a class="plantilla-button" href="{{ back_url }}">Cancel</a>
             </div>
         </form>
     </section>

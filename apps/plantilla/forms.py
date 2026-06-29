@@ -56,8 +56,8 @@ class ItemForm(forms.ModelForm):
         model = Item
         fields = [
             'item_number',
-            'employee_name',
             'position_title',
+            'appointment_type',
             'salary_grade',
             'salary_step',
             'office',
@@ -65,6 +65,7 @@ class ItemForm(forms.ModelForm):
             'funding_source',
             'position_status',
             'duties_responsibilities',
+            'requirements',
             'legalbasis',
         ]
 
@@ -75,6 +76,7 @@ class ItemForm(forms.ModelForm):
 
         self.fields['office'].empty_label = 'Select office'
         self.fields['legalbasis'].empty_label = 'Select legal basis (optional)'
+        self.fields['appointment_type'].empty_label = 'Select appointment type'
 
         if use_salary_grade_controls:
             today = timezone.localdate()
@@ -152,29 +154,21 @@ class ItemForm(forms.ModelForm):
             field.widget.attrs['class'] = 'org-form-control'
 
         self.fields['item_number'].widget.attrs['placeholder'] = 'Example: HRMO-001'
-        self.fields['employee_name'].widget.attrs['placeholder'] = 'Leave blank for vacant or abolished positions'
         self.fields['position_title'].widget.attrs['placeholder'] = 'Example: Administrative Officer IV'
         self.fields['duties_responsibilities'].widget.attrs['placeholder'] = 'Summarize the position duties and responsibilities'
+        self.fields['requirements'].widget = forms.Textarea(
+            attrs={
+                'rows': 3,
+                'class': 'org-form-control',
+                'placeholder': 'List eligibility, education, experience, training, or other requirements',
+            }
+        )
         if not use_salary_grade_controls:
             self.fields['salary_grade'].widget.attrs['min'] = '1'
             self.fields['salary_grade'].widget.attrs['max'] = '33'
         self.fields['item_number'].widget.attrs['maxlength'] = '50'
         self.fields['item_number'].widget.attrs['pattern'] = '[A-Za-z0-9-]+'
         self.fields['position_title'].widget.attrs['maxlength'] = '255'
-        self.fields['employee_name'].widget.attrs['maxlength'] = '255'
-
-    def clean(self):
-        cleaned_data = super().clean()
-        status = cleaned_data.get('position_status')
-        employee_name = cleaned_data.get('employee_name', '')
-
-        if status == 'filled' and not employee_name.strip():
-            self.add_error('employee_name', 'Filled positions require an employee name.')
-
-        if status in {'vacant', 'abolished'}:
-            cleaned_data['employee_name'] = ''
-
-        return cleaned_data
 
 
 # Form used by the non-plantilla create and edit views.
@@ -182,17 +176,35 @@ class NonPlantillaEmployeeForm(forms.ModelForm):
     class Meta:
         model = NonPlantillaEmployee
         fields = [
-            'name',
             'employee_type',
             'office',
+            'position_title',
+            'funding_source',
+            'reference_number',
+            'duties_responsibilities',
+            'requirements',
+            'salary_grade',
+            'salary_step',
             'duration_value',
             'duration_unit',
-            'start_date',
-            'end_date',
+            'service_provider',
+            'consultancy_title',
+            'work_assignment',
         ]
 
     def __init__(self, *args, **kwargs):
+        args = self._without_inactive_conditional_data(args, kwargs)
         super().__init__(*args, **kwargs)
+
+        self.common_field_names = tuple(NonPlantillaEmployee.COMMON_FORM_FIELDS)
+        self.conditional_field_names = NonPlantillaEmployee.all_conditional_fields()
+        self.dynamic_field_config = json.dumps({
+            employee_type: {
+                'fields': list(NonPlantillaEmployee.conditional_fields_for(employee_type)),
+                'required': list(NonPlantillaEmployee.conditional_fields_for(employee_type)),
+            }
+            for employee_type, _ in NonPlantillaEmployee.EMPLOYEE_TYPE_CHOICES
+        })
 
         self.fields['office'].empty_label = 'Select office'
         self.fields['employee_type'].empty_label = 'Select type'
@@ -200,12 +212,158 @@ class NonPlantillaEmployeeForm(forms.ModelForm):
         for field_name, field in self.fields.items():
             field.widget.attrs['class'] = 'org-form-control'
 
-        self.fields['name'].widget.attrs['placeholder'] = 'Employee name'
+        self.fields['position_title'].widget.attrs['placeholder'] = 'Position or engagement title'
+        self.fields['funding_source'].widget.attrs['placeholder'] = 'Funding source'
+        self.fields['reference_number'].widget.attrs['placeholder'] = 'Reference number'
+        self.fields['duties_responsibilities'].widget.attrs['placeholder'] = 'Assigned duties and responsibilities'
+        self.fields['requirements'].widget = forms.Textarea(
+            attrs={
+                'rows': 3,
+                'class': 'org-form-control',
+                'placeholder': 'List eligibility, education, experience, training, or other requirements',
+            }
+        )
         self.fields['duration_value'].widget.attrs['min'] = '1'
         self.fields['duration_value'].widget.attrs['placeholder'] = 'Duration'
-        self.fields['start_date'].widget = forms.DateInput(
-            attrs={'type': 'date', 'class': 'org-form-control'}
+        self.fields['service_provider'].widget.attrs['placeholder'] = 'Service provider'
+        self.fields['consultancy_title'].widget.attrs['placeholder'] = 'Consultancy title'
+        self.fields['work_assignment'].widget.attrs['placeholder'] = 'Work assignment'
+        self.fields['duties_responsibilities'].widget = forms.Textarea(
+            attrs={
+                'rows': 3,
+                'class': 'org-form-control',
+                'placeholder': 'Assigned duties and responsibilities',
+            }
         )
-        self.fields['end_date'].widget = forms.DateInput(
-            attrs={'type': 'date', 'class': 'org-form-control'}
+        self._configure_salary_fields()
+
+    @staticmethod
+    def _without_inactive_conditional_data(args, kwargs):
+        data = kwargs.get('data')
+        args = list(args)
+
+        if data is None and args:
+            data = args[0]
+
+        if data is None:
+            return tuple(args)
+
+        employee_type = data.get('employee_type')
+        active_fields = set(NonPlantillaEmployee.conditional_fields_for(employee_type))
+        inactive_fields = set(NonPlantillaEmployee.all_conditional_fields()) - active_fields
+
+        if not inactive_fields:
+            return tuple(args)
+
+        cleaned_data = data.copy()
+        for field_name in inactive_fields:
+            cleaned_data[field_name] = ''
+
+        if 'data' in kwargs:
+            kwargs['data'] = cleaned_data
+        elif args:
+            args[0] = cleaned_data
+
+        return tuple(args)
+
+    def _configure_salary_fields(self):
+        today = timezone.localdate()
+        active_schedule = SalarySchedule.objects.filter(
+            is_active=True,
+            effective_date__lte=today,
+        ).filter(
+            Q(inactive_date__isnull=True) | Q(inactive_date__gte=today),
+        ).order_by('-effective_date', 'name').first()
+
+        salary_grade_queryset = SalaryGrade.objects.none()
+        salary_step_queryset = SalaryGradeStep.objects.none()
+        if active_schedule:
+            salary_grade_queryset = SalaryGrade.objects.filter(
+                schedule=active_schedule,
+                is_active=True,
+            )
+            salary_step_queryset = SalaryGradeStep.objects.select_related(
+                'salary_grade',
+            ).filter(
+                salary_grade__schedule=active_schedule,
+                salary_grade__is_active=True,
+            )
+
+        self.fields['salary_grade'].widget = forms.Select(
+            choices=[
+                ('', 'Select salary grade'),
+                *[
+                    (grade_number, f'SG {grade_number}')
+                    for grade_number in salary_grade_queryset.values_list(
+                        'grade_number',
+                        flat=True,
+                    ).order_by('grade_number')
+                ],
+            ],
+            attrs={'class': 'org-form-control'},
         )
+
+        salary_steps = {}
+        for step in salary_step_queryset.order_by(
+            'salary_grade__grade_number',
+            'step_number',
+        ):
+            salary_steps.setdefault(str(step.salary_grade.grade_number), []).append({
+                'value': str(step.step_number),
+                'label': f'Step {step.step_number}',
+            })
+
+        selected_salary_grade = self.data.get(
+            self.add_prefix('salary_grade'),
+            self.initial.get(
+                'salary_grade',
+                getattr(self.instance, 'salary_grade', ''),
+            ),
+        )
+        selected_salary_grade = str(selected_salary_grade) if selected_salary_grade else ''
+        selected_salary_steps = salary_steps.get(selected_salary_grade, [])
+
+        self.fields['salary_step'].widget = forms.Select(
+            choices=[
+                ('', 'Select salary step' if selected_salary_steps else 'Select salary grade first'),
+                *[
+                    (step['value'], step['label'])
+                    for step in selected_salary_steps
+                ],
+            ],
+            attrs={
+                'class': 'org-form-control',
+                'data-steps': json.dumps(salary_steps),
+                'data-selected': self.data.get(self.add_prefix('salary_step'), ''),
+            },
+        )
+        if not selected_salary_steps:
+            self.fields['salary_step'].widget.attrs['disabled'] = 'disabled'
+
+    def clean(self):
+        cleaned_data = super().clean()
+        employee_type = cleaned_data.get('employee_type')
+        active_fields = set(NonPlantillaEmployee.conditional_fields_for(employee_type))
+
+        for field_name in NonPlantillaEmployee.all_conditional_fields():
+            if field_name not in active_fields:
+                cleaned_data[field_name] = None if self._meta.model._meta.get_field(field_name).null else ''
+
+        salary_grade = cleaned_data.get('salary_grade')
+        salary_step = cleaned_data.get('salary_step')
+        if salary_grade and salary_step:
+            today = timezone.localdate()
+            step_exists = SalaryGradeStep.objects.filter(
+                salary_grade__grade_number=salary_grade,
+                salary_grade__schedule__is_active=True,
+                salary_grade__schedule__effective_date__lte=today,
+                salary_grade__is_active=True,
+                step_number=salary_step,
+            ).filter(
+                Q(salary_grade__schedule__inactive_date__isnull=True)
+                | Q(salary_grade__schedule__inactive_date__gte=today),
+            ).exists()
+            if not step_exists:
+                self.add_error('salary_step', 'Select a valid salary step for this salary grade.')
+
+        return cleaned_data

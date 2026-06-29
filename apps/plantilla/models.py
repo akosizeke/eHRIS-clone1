@@ -55,6 +55,7 @@ class Item(AbstractBaseModel):
     funding_source  = models.CharField(max_length=10, choices=FUNDING_SOURCE_CHOICES)
     position_status = models.CharField(max_length=20, choices=POSITION_STATUS_CHOICES, default='vacant')
     duties_responsibilities = models.TextField(blank=True, default='')
+    requirements = models.TextField(blank=True, default='')
 
     office          = models.ForeignKey('organization.Office',    on_delete=models.PROTECT, related_name='plantilla_items')
     legalbasis      = models.ForeignKey('legal_basis.LegalBasis', on_delete=models.PROTECT, related_name='plantilla_items', null=True, blank=True)
@@ -95,9 +96,8 @@ class Item(AbstractBaseModel):
             if self.duties_responsibilities
             else ''
         )
-
-        if self.position_status in {'vacant', 'abolished'}:
-            self.employee_name = ''
+        self.requirements = self.requirements.strip() if self.requirements else ''
+        self.employee_name = ''
 
         if self.position_title and self.office_id:
             duplicate_position = Item.objects.filter(
@@ -147,34 +147,30 @@ class NonPlantillaEmployee(AbstractBaseModel):
         ('months', 'Months'),
         ('years', 'Years'),
     ]
-    COMPENSATION_TYPES = {
-        EmployeeType.JOB_ORDER,
-        EmployeeType.CONTRACT_OF_SERVICE,
-    }
     CONDITIONAL_FIELD_GROUPS = {
-        EmployeeType.JOB_ORDER: ('compensation_rate', 'rate_basis'),
-        EmployeeType.CONTRACT_OF_SERVICE: ('compensation_rate', 'rate_basis'),
-        EmployeeType.CASUAL: ('salary_grade', 'salary_step'),
-        EmployeeType.CONTRACTUAL: ('salary_grade', 'salary_step'),
-        EmployeeType.PROJECT_BASED: ('salary_grade', 'salary_step'),
-        EmployeeType.TEMPORARY: ('salary_grade', 'salary_step'),
+        EmployeeType.JOB_ORDER: (),
+        EmployeeType.CONTRACT_OF_SERVICE: (),
+        EmployeeType.CASUAL: (),
+        EmployeeType.CONTRACTUAL: (),
+        EmployeeType.PROJECT_BASED: (),
+        EmployeeType.TEMPORARY: (),
         EmployeeType.EMERGENCY_WORKER: ('work_assignment',),
-        EmployeeType.SUBSTITUTE: ('salary_grade', 'salary_step'),
+        EmployeeType.SUBSTITUTE: (),
         EmployeeType.OUTSOURCED_PERSONNEL: ('service_provider',),
-        EmployeeType.CONSULTANT: ('consultancy_title', 'contract_amount'),
+        EmployeeType.CONSULTANT: ('consultancy_title',),
     }
     COMMON_FORM_FIELDS = [
-        'name',
         'employee_type',
         'office',
         'position_title',
         'funding_source',
         'reference_number',
         'duties_responsibilities',
+        'requirements',
+        'salary_grade',
+        'salary_step',
         'duration_value',
         'duration_unit',
-        'start_date',
-        'end_date',
     ]
     SALARY_GRADE_TYPES = {
         EmployeeType.CASUAL,
@@ -184,16 +180,17 @@ class NonPlantillaEmployee(AbstractBaseModel):
         EmployeeType.SUBSTITUTE,
     }
 
-    name           = models.CharField(max_length=255)
+    name           = models.CharField(max_length=255, blank=True, default='')
     employee_type  = models.CharField(max_length=30, choices=EMPLOYEE_TYPE_CHOICES)
     office         = models.ForeignKey('organization.Office', on_delete=models.PROTECT, related_name='non_plantilla_employees')
     position_title = models.CharField(max_length=255, blank=True, default='')
     funding_source = models.CharField(max_length=255, blank=True, default='')
     reference_number = models.CharField(max_length=100, blank=True, default='')
     duties_responsibilities = models.TextField(blank=True, default='')
+    requirements = models.TextField(blank=True, default='')
     duration_value = models.PositiveIntegerField(validators=[MinValueValidator(1)])
     duration_unit  = models.CharField(max_length=10, choices=DURATION_UNIT_CHOICES, default='months')
-    start_date     = models.DateField()
+    start_date     = models.DateField(null=True, blank=True)
     end_date       = models.DateField(null=True, blank=True)
     compensation_rate = models.DecimalField(
         max_digits=12,
@@ -239,7 +236,8 @@ class NonPlantillaEmployee(AbstractBaseModel):
         ]
 
     def __str__(self):
-        return f"{self.name} - {self.get_employee_type_display()}"
+        label = self.position_title or self.name or self.get_employee_type_display()
+        return f"{label} - {self.get_employee_type_display()}"
 
     @classmethod
     def conditional_fields_for(cls, employee_type):
@@ -306,25 +304,23 @@ class NonPlantillaEmployee(AbstractBaseModel):
             if self.duties_responsibilities
             else ''
         )
+        self.requirements = self.requirements.strip() if self.requirements else ''
+        self.name = self.position_title or self.get_employee_type_display()
         self.service_provider = self.service_provider.strip() if self.service_provider else ''
         self.consultancy_title = self.consultancy_title.strip() if self.consultancy_title else ''
         self.work_assignment = self.work_assignment.strip() if self.work_assignment else ''
+        self.compensation_rate = None
+        self.rate_basis = ''
+        self.contract_amount = None
         self._clear_inactive_conditional_fields()
 
         if self.end_date and self.start_date and self.end_date < self.start_date:
             errors['end_date'] = ['End date cannot be earlier than start date.']
 
-        if self.employee_type in self.COMPENSATION_TYPES:
-            if self.compensation_rate is None:
-                errors['compensation_rate'] = ['Compensation rate is required for this employee type.']
-            if not self.rate_basis:
-                errors['rate_basis'] = ['Rate basis is required for this employee type.']
-
-        if self.employee_type in self.SALARY_GRADE_TYPES:
-            if self.salary_grade is None:
-                errors['salary_grade'] = ['Salary grade is required for this employee type.']
-            if self.salary_step is None:
-                errors['salary_step'] = ['Salary step is required for this employee type.']
+        if self.salary_grade is None:
+            errors['salary_grade'] = ['Salary grade is required.']
+        if self.salary_step is None:
+            errors['salary_step'] = ['Salary step is required.']
 
         if self.employee_type == self.EmployeeType.OUTSOURCED_PERSONNEL and not self.service_provider:
             errors['service_provider'] = ['Service provider is required for outsourced personnel.']
@@ -332,8 +328,6 @@ class NonPlantillaEmployee(AbstractBaseModel):
         if self.employee_type == self.EmployeeType.CONSULTANT:
             if not self.consultancy_title:
                 errors['consultancy_title'] = ['Consultancy title is required for consultants.']
-            if self.contract_amount is None:
-                errors['contract_amount'] = ['Contract amount is required for consultants.']
 
         if self.employee_type == self.EmployeeType.EMERGENCY_WORKER and not self.work_assignment:
             errors['work_assignment'] = ['Work assignment is required for emergency workers.']

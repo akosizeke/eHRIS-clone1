@@ -38,7 +38,7 @@
     {# Toolbar provides edit and return actions for the current plantilla item. #}
     <div class="toolbar">
         <a class="plantilla-button" href="{% url 'plantilla:edit' item.pk %}">Edit</a>
-        <a class="plantilla-button" href="{% url 'plantilla:list' %}?tab=plantilla">Back to Plantilla</a>
+        <a class="plantilla-button" href="{% url 'plantilla:list' %}?tab=plantilla&office={{ item.office.pk }}">Back to Office Positions</a>
     </div>
 </header>
 
@@ -48,17 +48,6 @@
     <dl class="detail-list">
         <dt>Item Number</dt>
         <dd>{{ item.item_number }}</dd>
-        <dt>Name</dt>
-        <dd>
-            {# Name field displays occupancy status when no employee name should be shown. #}
-            {% if item.position_status == 'vacant' %}
-                <span class="muted">(vacant)</span>
-            {% elif item.position_status == 'abolished' %}
-                <span class="muted">(abolished)</span>
-            {% else %}
-                {{ item.employee_name }}
-            {% endif %}
-        </dd>
         <dt>Position</dt>
         <dd>{{ item.position_title }}</dd>
         <dt>Appointment Type</dt>
@@ -75,6 +64,8 @@
         <dd>{{ item.legalbasis|default:"-" }}</dd>
         <dt>Duties & Responsibilities</dt>
         <dd>{{ item.duties_responsibilities|linebreaksbr|default:"-" }}</dd>
+        <dt>Requirements</dt>
+        <dd>{{ item.requirements|linebreaksbr|default:"-" }}</dd>
     </dl>
 </section>
 

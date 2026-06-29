@@ -129,7 +129,7 @@
             {# Common fields render immediately; conditional fields are inserted only for the selected type. #}
             {% for field in form %}
                 {% if field.name in form.common_field_names %}
-                    <label class="field-{{ field.name }}{% if field.name == 'duties_responsibilities' %} full{% endif %}" data-field-name="{{ field.name }}">
+                    <label class="field-{{ field.name }}{% if field.name == 'duties_responsibilities' or field.name == 'requirements' %} full{% endif %}" data-field-name="{{ field.name }}">
                         {{ field.label }}
                         {{ field }}
                         {% for error in field.errors %}

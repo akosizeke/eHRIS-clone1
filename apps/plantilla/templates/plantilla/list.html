@@ -257,14 +257,13 @@
     <header class="page-header">
         <div>
             <h1>Plantilla</h1>
-            <p class="muted">Offices, authorized plantilla positions, and non-plantilla employees.</p>
+            <p class="muted">Office-based authorized positions and non-plantilla employees.</p>
         </div>
     </header>
 
-    {# Tabs switch between office summaries, plantilla positions, and non-plantilla employees. #}
+    {# Tabs switch between office summaries and non-plantilla employees. #}
     <nav class="plantilla-tabs" aria-label="Plantilla tabs">
-        <a class="plantilla-tab {% if active_tab == 'offices' %}is-active{% endif %}" href="{% url 'plantilla:list' %}?tab=offices">Offices</a>
-        <a class="plantilla-tab {% if active_tab == 'plantilla' %}is-active{% endif %}" href="{% url 'plantilla:list' %}?tab=plantilla">Plantilla</a>
+        <a class="plantilla-tab {% if active_tab == 'offices' or active_tab == 'plantilla' %}is-active{% endif %}" href="{% url 'plantilla:list' %}?tab=offices">Offices</a>
         <a class="plantilla-tab {% if active_tab == 'non-plantilla' %}is-active{% endif %}" href="{% url 'plantilla:list' %}?tab=non-plantilla">Non-Plantilla</a>
     </nav>
 
@@ -363,19 +362,14 @@
             </div>
         </section>
     {% elif active_tab == 'plantilla' %}
-        {# Plantilla tab lists all position items with filters. #}
+        {# Office-selected plantilla view lists positions only for the selected office. #}
         <section class="plantilla-panel">
             {# Toolbar combines position filters with the add-position action. #}
             <div class="plantilla-toolbar">
                 <form class="plantilla-filters" method="get">
                     <input type="hidden" name="tab" value="plantilla">
-                    <input type="search" name="q" value="{{ search }}" placeholder="Search name or position" aria-label="Search name or position">
-                    <select name="office" aria-label="Filter by office">
-                        <option value="">All offices</option>
-                        {% for office in offices %}
-                            <option value="{{ office.pk }}" {% if office_id == office.pk|stringformat:"s" %}selected{% endif %}>{{ office.name }}</option>
-                        {% endfor %}
-                    </select>
+                    <input type="hidden" name="office" value="{{ office_id }}">
+                    <input type="search" name="q" value="{{ search }}" placeholder="Search position or item" aria-label="Search position or item">
                     <select name="status" aria-label="Filter by status">
                         <option value="">All statuses</option>
                         {% for value, label in position_status_choices %}
@@ -395,7 +389,13 @@
                         {% endfor %}
                     </select>
                 </form>
-                <a class="plantilla-button primary" href="{% url 'plantilla:create' %}">+ Add Position</a>
+                <div class="plantilla-filters">
+                    {% if selected_office %}
+                        <strong>{{ selected_office.name }}</strong>
+                    {% endif %}
+                    <a class="plantilla-button" href="{% url 'plantilla:list' %}?tab=offices">Back to Offices</a>
+                    <a class="plantilla-button primary" href="{% url 'plantilla:create' %}?office={{ office_id }}">+ Add Position</a>
+                </div>
             </div>
 
             {# Position table shows employee assignment, office, grade, appointment type, status, and actions. #}
@@ -403,7 +403,6 @@
                 <table class="plantilla-table">
                     <thead>
                         <tr>
-                            <th>Name</th>
                             <th>Position Title</th>
                             <th>Office</th>
                             <th>Appointment Type</th>
@@ -416,16 +415,6 @@
                     <tbody>
                         {% for item in items %}
                             <tr>
-                                <td>
-                                    {# Name cell shows vacant or abolished text when no active employee should be displayed. #}
-                                    {% if item.position_status == 'vacant' %}
-                                        <span class="plantilla-muted">(vacant)</span>
-                                    {% elif item.position_status == 'abolished' %}
-                                        <span class="plantilla-muted">(abolished)</span>
-                                    {% else %}
-                                        {{ item.employee_name }}
-                                    {% endif %}
-                                </td>
                                 <td>{{ item.position_title }}</td>
                                 <td>{{ item.office.name }}</td>
                                 <td>{{ item.get_appointment_type_display }}</td>
@@ -437,7 +426,7 @@
                         {% empty %}
                             {# Empty state appears when no plantilla rows match the filters. #}
                             <tr>
-                                <td colspan="8" class="plantilla-empty">No plantilla positions found.</td>
+                                <td colspan="7" class="plantilla-empty">No plantilla positions found.</td>
                             </tr>
                         {% endfor %}
                     </tbody>
@@ -451,55 +440,58 @@
             <div class="plantilla-toolbar">
                 <form class="plantilla-filters" method="get">
                     <input type="hidden" name="tab" value="non-plantilla">
-                    <input type="search" name="q" value="{{ search }}" placeholder="Search name" aria-label="Search name">
+                    <input type="search" name="q" value="{{ search }}" placeholder="Search position or reference" aria-label="Search position or reference">
                     <select name="type" aria-label="Filter by type">
                         <option value="">All types</option>
                         {% for value, label in non_plantilla_type_choices %}
                             <option value="{{ value }}" {% if non_plantilla_type == value %}selected{% endif %}>{{ label }}</option>
                         {% endfor %}
                     </select>
-                    <select name="office" aria-label="Filter by office">
+                    <select id="nonPlantillaOfficeParent" name="office_parent" aria-label="Filter by parent office">
                         <option value="">All offices</option>
-                        {% for office in offices %}
-                            <option value="{{ office.pk }}" {% if office_id == office.pk|stringformat:"s" %}selected{% endif %}>{{ office.name }}</option>
+                        {% for group in office_filter_groups %}
+                            <option value="{{ group.id }}" {% if office_parent_id == group.id %}selected{% endif %}>{{ group.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <select id="nonPlantillaOfficeChild" name="office" aria-label="Filter by office">
+                        <option value="">All offices under selected office</option>
+                        {% for group in office_filter_groups %}
+                            {% if office_parent_id == group.id %}
+                                {% for option in group.options %}
+                                    <option value="{{ option.id }}" {% if office_id == option.id %}selected{% endif %}>{{ option.label }}</option>
+                                {% endfor %}
+                            {% endif %}
                         {% endfor %}
                     </select>
                 </form>
                 <a class="plantilla-button primary" href="{% url 'plantilla:non_plantilla_create' %}">+ Add Non-Plantilla</a>
             </div>
 
-            {# Non-plantilla table shows employee type, office, duration, dates, eligibility, and edit action. #}
+            {# Non-plantilla table shows salary-grade based engagements and edit action. #}
             <div class="table-scroll">
                 <table class="plantilla-table">
                     <thead>
                         <tr>
-                            <th>Name</th>
+                            <th>Position Title</th>
                             <th>Type</th>
                             <th>Office</th>
+                            <th>SG</th>
+                            <th>Step</th>
                             <th>Duration</th>
-                            <th>Start Date</th>
-                            <th>End Date</th>
-                            <th>Eligible for Permanent</th>
+                            <th>Requirements</th>
                             <th>Edit</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for employee in non_plantilla_employees %}
                             <tr>
-                                <td>{{ employee.name }}</td>
+                                <td>{{ employee.position_title|default:"-" }}</td>
                                 <td><span class="badge type-{{ employee.employee_type }}">{{ employee.get_employee_type_display }}</span></td>
                                 <td>{{ employee.office.name }}</td>
+                                <td>{{ employee.salary_grade|default:"-" }}</td>
+                                <td>{{ employee.salary_step|default:"-" }}</td>
                                 <td>{{ employee.duration_display }}</td>
-                                <td>{{ employee.start_date }}</td>
-                                <td>{{ employee.end_date|default:"-" }}</td>
-                                <td>
-                                    {# Eligibility badge flags whether the employee can be considered for permanent placement. #}
-                                    {% if employee.eligible_for_permanent %}
-                                        <span class="badge eligible-yes">Yes</span>
-                                    {% else %}
-                                        <span class="badge eligible-no">No</span>
-                                    {% endif %}
-                                </td>
+                                <td>{{ employee.requirements|default:"-"|truncatechars:80 }}</td>
                                 <td><a class="plantilla-button" href="{% url 'plantilla:non_plantilla_edit' employee.pk %}">Edit</a></td>
                             </tr>
                         {% empty %}
@@ -517,7 +509,52 @@
 {% endblock %}
 
 {% block scripts %}
+{{ office_filter_groups|json_script:"office-filter-groups-data" }}
 <script>
+    const officeFilterGroups = JSON.parse(
+        document.getElementById('office-filter-groups-data').textContent
+    );
+    const officeParentSelect = document.getElementById('nonPlantillaOfficeParent');
+    const officeChildSelect = document.getElementById('nonPlantillaOfficeChild');
+
+    function populateOfficeChildOptions(resetSelection) {
+        if (!officeParentSelect || !officeChildSelect) {
+            return;
+        }
+
+        const selectedParent = officeParentSelect.value;
+        const selectedOffice = resetSelection ? '' : officeChildSelect.value;
+        const group = officeFilterGroups.find(function (entry) {
+            return entry.id === selectedParent;
+        });
+
+        officeChildSelect.replaceChildren();
+
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = selectedParent ? 'All offices under selected office' : 'Select office first';
+        officeChildSelect.appendChild(placeholder);
+
+        if (group) {
+            group.options.forEach(function (office) {
+                const option = document.createElement('option');
+                option.value = office.id;
+                option.textContent = office.label;
+                option.selected = office.id === selectedOffice;
+                officeChildSelect.appendChild(option);
+            });
+        }
+
+        officeChildSelect.disabled = !selectedParent;
+    }
+
+    if (officeParentSelect && officeChildSelect) {
+        populateOfficeChildOptions(false);
+        officeParentSelect.addEventListener('change', function () {
+            populateOfficeChildOptions(true);
+        });
+    }
+
     document.querySelectorAll('.plantilla-toggle').forEach(function (button) {
         button.addEventListener('click', function () {
             var row = document.getElementById(button.dataset.target);

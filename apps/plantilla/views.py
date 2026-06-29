@@ -131,6 +131,7 @@ def _item_payload(item):
         'funding_source': item.funding_source,
         'position_status': item.position_status,
         'duties_responsibilities': item.duties_responsibilities,
+        'requirements': item.requirements,
         'legalbasis_id': str(item.legalbasis_id) if item.legalbasis_id else None,
         'created_at': item.created_at.isoformat(),
         'modified_at': item.modified_at.isoformat(),
@@ -147,10 +148,11 @@ def _non_plantilla_payload(employee):
         'funding_source': employee.funding_source,
         'reference_number': employee.reference_number,
         'duties_responsibilities': employee.duties_responsibilities,
+        'requirements': employee.requirements,
         'duration': employee.duration_display,
         'duration_value': employee.duration_value,
         'duration_unit': employee.duration_unit,
-        'start_date': employee.start_date.isoformat(),
+        'start_date': employee.start_date.isoformat() if employee.start_date else None,
         'end_date': employee.end_date.isoformat() if employee.end_date else None,
         'compensation_rate': str(employee.compensation_rate) if employee.compensation_rate is not None else None,
         'rate_basis': employee.rate_basis,
@@ -183,6 +185,72 @@ def _history_payload(history):
     }
 
 
+def _office_filter_groups(offices):
+    office_list = list(offices)
+    office_by_id = {str(office.pk): office for office in office_list}
+    children_by_parent = {}
+    for office in office_list:
+        parent_key = str(office.parent_office_id) if office.parent_office_id else ''
+        children_by_parent.setdefault(parent_key, []).append(office)
+
+    def descendants(office, depth=0):
+        rows = [{
+            'id': str(office.pk),
+            'label': f"{'-- ' * depth}{office.name}",
+        }]
+        for child in children_by_parent.get(str(office.pk), []):
+            rows.extend(descendants(child, depth + 1))
+        return rows
+
+    groups = []
+    for root in children_by_parent.get('', []):
+        if str(root.pk) not in office_by_id:
+            continue
+        groups.append({
+            'id': str(root.pk),
+            'name': root.name,
+            'options': descendants(root),
+        })
+    return groups
+
+
+def _office_descendant_ids(offices, office_id):
+    children_by_parent = {}
+    office_ids = set()
+    for office in offices:
+        office_ids.add(str(office.pk))
+        parent_key = str(office.parent_office_id) if office.parent_office_id else ''
+        children_by_parent.setdefault(parent_key, []).append(office)
+
+    if office_id not in office_ids:
+        return []
+
+    descendant_ids = []
+
+    def collect(parent_id):
+        descendant_ids.append(parent_id)
+        for child in children_by_parent.get(parent_id, []):
+            collect(str(child.pk))
+
+    collect(office_id)
+    return descendant_ids
+
+
+def _root_office_id(offices, office_id):
+    office_by_id = {str(office.pk): office for office in offices}
+    office = office_by_id.get(office_id)
+    if not office:
+        return ''
+
+    visited = set()
+    while office.parent_office_id and str(office.parent_office_id) in office_by_id:
+        if str(office.pk) in visited:
+            break
+        visited.add(str(office.pk))
+        office = office_by_id[str(office.parent_office_id)]
+    return str(office.pk)
+
+
 # Shows the three-tab Plantilla Management System page.
 def plantilla_list(request):
     active_tab = request.GET.get('tab', 'offices')
@@ -192,6 +260,7 @@ def plantilla_list(request):
     offices = Office.objects.filter(is_active=True).order_by('level_no', 'name')
     office_search = request.GET.get('office_q', '').strip()
     search = request.GET.get('q', '').strip()
+    office_parent_id = request.GET.get('office_parent', '').strip()
     office_id = request.GET.get('office', '').strip()
     position_status = request.GET.get('status', '').strip()
     appointment_type = request.GET.get('appointment_type', '').strip()
@@ -216,6 +285,13 @@ def plantilla_list(request):
     if non_plantilla_type and non_plantilla_type not in allowed_non_plantilla_types:
         return HttpResponseBadRequest('Invalid non-plantilla type.')
 
+    if active_tab == 'plantilla' and not office_id and not _request_wants_json(request):
+        active_tab = 'offices'
+
+    office_filter_groups = _office_filter_groups(offices)
+    if office_id and not office_parent_id:
+        office_parent_id = _root_office_id(offices, office_id)
+
     permanent_items = Item.objects.filter(
         employment_type='permanent',
     ).select_related(
@@ -232,9 +308,9 @@ def plantilla_list(request):
     filtered_items = permanent_items
     if search:
         filtered_items = filtered_items.filter(
-            Q(employee_name__icontains=search)
-            | Q(position_title__icontains=search)
+            Q(position_title__icontains=search)
             | Q(item_number__icontains=search)
+            | Q(requirements__icontains=search)
         )
     if office_id:
         filtered_items = filtered_items.filter(office_id=office_id)
@@ -253,11 +329,19 @@ def plantilla_list(request):
         'name',
     )
     if search:
-        non_plantilla_employees = non_plantilla_employees.filter(name__icontains=search)
+        non_plantilla_employees = non_plantilla_employees.filter(
+            Q(position_title__icontains=search)
+            | Q(reference_number__icontains=search)
+            | Q(requirements__icontains=search)
+        )
     if non_plantilla_type:
         non_plantilla_employees = non_plantilla_employees.filter(employee_type=non_plantilla_type)
     if office_id:
         non_plantilla_employees = non_plantilla_employees.filter(office_id=office_id)
+    elif office_parent_id:
+        non_plantilla_employees = non_plantilla_employees.filter(
+            office_id__in=_office_descendant_ids(offices, office_parent_id)
+        )
 
     if _request_wants_json(request):
         return JsonResponse({
@@ -275,6 +359,9 @@ def plantilla_list(request):
             schedule=active_salary_schedule,
             is_active=True,
         )
+    selected_office = None
+    if office_id:
+        selected_office = offices.filter(pk=office_id).first()
 
     return render(request, 'plantilla/list.html', {
         'active_tab': active_tab,
@@ -282,6 +369,9 @@ def plantilla_list(request):
         'items': filtered_items,
         'non_plantilla_employees': non_plantilla_employees,
         'offices': offices,
+        'selected_office': selected_office,
+        'office_filter_groups': office_filter_groups,
+        'office_parent_id': office_parent_id,
         'office_search': office_search,
         'search': search,
         'office_id': office_id,
@@ -772,7 +862,7 @@ def plantilla_create(request):
                 item = form.save()
             if _request_wants_json(request):
                 return JsonResponse(_item_payload(item), status=201)
-            return redirect(f"{reverse('plantilla:list')}?tab=plantilla")
+            return redirect(f"{reverse('plantilla:list')}?tab=plantilla&office={item.office_id}")
 
         if _request_wants_json(request):
             return JsonResponse({
@@ -782,17 +872,29 @@ def plantilla_create(request):
                 }
             }, status=400)
     else:
+        initial = {
+            'employment_type': 'permanent',
+            'funding_source': 'PS',
+        }
+        office_id = request.GET.get('office', '').strip()
+        if office_id:
+            initial['office'] = office_id
         form = ItemForm(
-            initial={'employment_type': 'permanent', 'funding_source': 'PS'},
+            initial=initial,
             use_salary_grade_controls=True,
         )
 
     _prepare_permanent_form(form)
+    back_office_id = request.GET.get('office') or getattr(form.instance, 'office_id', '')
+    back_url = f"{reverse('plantilla:list')}?tab=offices"
+    if back_office_id:
+        back_url = f"{reverse('plantilla:list')}?tab=plantilla&office={back_office_id}"
 
     return render(request, 'plantilla/create.html', {
         'form': form,
         'title': 'Add Position',
         'submit_label': 'Save Position',
+        'back_url': back_url,
     })
 
 
@@ -807,8 +909,8 @@ def plantilla_update(request, pk):
         form = ItemForm(data, instance=item, use_salary_grade_controls=True)
         if form.is_valid():
             with transaction.atomic():
-                form.save()
-            return redirect(f"{reverse('plantilla:list')}?tab=plantilla")
+                item = form.save()
+            return redirect(f"{reverse('plantilla:list')}?tab=plantilla&office={item.office_id}")
     else:
         form = ItemForm(instance=item, use_salary_grade_controls=True)
 
@@ -818,6 +920,7 @@ def plantilla_update(request, pk):
         'form': form,
         'title': 'Edit Position',
         'submit_label': 'Save Changes',
+        'back_url': f"{reverse('plantilla:list')}?tab=plantilla&office={item.office_id}",
     })
 
 
